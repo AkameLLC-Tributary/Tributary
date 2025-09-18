@@ -3,6 +3,8 @@
 ## Overview
 This document defines comprehensive development and operational rules for the Tributary project. It provides standards and guidelines to achieve high-quality, consistent project management.
 
+**Note**: For Japanese version, please refer to [`Ja_PROJECT_RULES.md`](Ja_PROJECT_RULES.md).
+
 ## 1. Documentation Rules
 
 ### 1.1 Common Documentation Format

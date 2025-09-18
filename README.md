@@ -1,0 +1,593 @@
+# Tributary
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.6+-blue.svg)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-18.0+-green.svg)](https://nodejs.org/)
+
+A powerful and user-friendly Solana token distribution system that enables proportional token distribution to holders based on their current balance ratios.
+
+## Overview
+
+Tributary allows you to:
+- **Collect token holders** based on a specific SPL token (base token)
+- **Calculate distribution ratios** proportional to their holdings
+- **Distribute any SPL token** to those holders based on the calculated ratios
+- **Execute distributions** with comprehensive validation and error handling
+
+### Key Concept
+
+1. **Base Token**: Determines who gets the distribution (e.g., SOL holders)
+2. **Distribution Token**: What token to distribute (e.g., USDC, custom tokens)
+3. **Proportional Logic**: Distribution amount = Total × (Holder's base token balance / Total base token supply)
+
+## Features
+
+🔥 **Core Features**
+- **Token Holder Collection**: Automatically discover all holders of a specific SPL token
+- **Proportional Distribution**: Distribute tokens proportionally based on current holding ratios
+- **Multi-Network Support**: Works on Devnet, Testnet, and Mainnet-beta
+- **Batch Processing**: Efficient batch processing for large-scale distributions
+- **Progress Tracking**: Real-time progress indicators with colored output
+
+⚡ **Advanced Capabilities**
+- **Caching System**: Intelligent caching to reduce RPC calls and improve performance
+- **Distribution Simulation**: Dry-run capabilities to preview distribution results
+- **Interactive CLI**: User-friendly command-line interface with progress bars
+- **Comprehensive Logging**: Detailed logging with configurable levels and file rotation
+- **Error Recovery**: Robust error handling with automatic retry mechanisms
+
+🛡️ **Security & Reliability**
+- **Input Validation**: Comprehensive validation using Zod schema validation
+- **Secure Key Management**: Safe handling of private keys and sensitive data
+- **Audit Logging**: Complete audit trail of all operations
+- **Type Safety**: Full TypeScript implementation with strict type checking
+- **Configuration Validation**: TOML configuration with schema validation
+
+## Installation
+
+### From NPM (Recommended)
+```bash
+npm install -g @akamellc/tributary
+```
+
+### From Source
+```bash
+git clone https://github.com/akameGusya/tributary.git
+cd tributary/200_src
+npm install
+npm run build
+npm link
+```
+
+## Quick Start
+
+### 1. Initialize a New Project
+```bash
+# Basic initialization
+tributary init --name "MyProject" \
+  --token "So11111111111111111111111111111111111111112" \
+  --admin "YourAdminWalletAddress" \
+  --network devnet
+
+# Interactive mode with guided setup
+tributary init --interactive
+```
+
+### 2. Collect Token Holders
+```bash
+# Collect all SOL holders with minimum 1.0 SOL
+tributary collect --token "So11111111111111111111111111111111111111112" --threshold 1.0
+
+# Exclude large holders and save to file
+tributary collect --threshold 0.1 \
+  --exclude "LargeHolder1,LargeHolder2" \
+  --output-file holders.json
+```
+
+### 3. Simulate Distribution (Recommended)
+```bash
+# Preview distribution of 1000 USDC
+tributary distribute simulate --amount 1000 \
+  --token "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+```
+
+### 4. Execute Distribution
+```bash
+# Execute actual distribution
+tributary distribute execute --amount 1000 \
+  --token "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" \
+  --wallet-file ./admin-keypair.json
+
+# Dry run first (safe testing)
+tributary distribute execute --amount 1000 \
+  --token "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" \
+  --wallet-file ./admin-keypair.json \
+  --dry-run
+```
+
+## Commands Reference
+
+### Global Options
+All commands support these global options:
+```bash
+--config <path>      Configuration file path (default: ./tributary.toml)
+--output <format>    Output format: table, json, yaml (default: table)
+--log-level <level>  Log level: debug, info, warn, error (default: info)
+--network <network>  Network override: devnet, testnet, mainnet-beta
+--help, -h          Show help for command
+```
+
+### Project Management
+
+#### `init` - Initialize Project
+```bash
+tributary init [options]
+```
+
+**Required:**
+- `--name <name>` - Project name (1-100 characters, alphanumeric + hyphens/underscores)
+- `--token <address>` - Base token address (Solana Base58 format)
+- `--admin <address>` - Admin wallet address
+
+**Options:**
+- `--network <network>` - Target network (default: devnet)
+- `--force, -f` - Overwrite existing configuration
+- `--interactive, -i` - Interactive setup mode with guided prompts
+
+**Examples:**
+```bash
+# Basic project setup
+tributary init --name "SOLRewards" \
+  --token "So11111111111111111111111111111111111111112" \
+  --admin "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU"
+
+# Mainnet project (use with caution)
+tributary init --name "MainnetProject" \
+  --token "TokenAddress" \
+  --admin "AdminAddress" \
+  --network mainnet-beta
+
+# Interactive mode
+tributary init --interactive
+```
+
+### Token Holder Management
+
+#### `collect` - Collect Token Holders
+```bash
+tributary collect [options]
+```
+
+**Options:**
+- `--token <address>` - Token address to collect holders for (uses base_token from config if omitted)
+- `--threshold <amount>` - Minimum balance threshold (default: 0)
+- `--max-holders <number>` - Maximum number of holders to collect
+- `--output-file <path>` - Save results to file (JSON or CSV format)
+- `--cache, -c` - Use cache (default: true)
+- `--cache-ttl <seconds>` - Cache TTL in seconds (default: 3600)
+- `--exclude <addresses>` - Exclude specific addresses (comma-separated)
+
+**Examples:**
+```bash
+# Collect all holders with minimum 10 tokens
+tributary collect --threshold 10
+
+# Collect and save to file
+tributary collect --threshold 1 --output-file holders.csv
+
+# Exclude large holders from collection
+tributary collect --exclude "Whale1Address,Whale2Address" --threshold 0.1
+
+# Disable cache for fresh data
+tributary collect --cache false --threshold 1
+```
+
+### Token Distribution
+
+#### `distribute execute` - Execute Distribution
+```bash
+tributary distribute execute [options]
+```
+
+**Required:**
+- `--amount <amount>` - Total distribution amount
+- `--wallet-file <path>` - Private key file path (JSON format)
+
+**Options:**
+- `--token <address>` - Distribution token address (can differ from base token)
+- `--dry-run` - Simulation mode (no actual transactions)
+- `--batch-size <number>` - Batch size for processing (default: 10)
+- `--confirm, -y` - Skip confirmation prompt
+
+**Examples:**
+```bash
+# Distribute 1000 USDC to SOL holders
+tributary distribute execute --amount 1000 \
+  --token "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" \
+  --wallet-file admin-keypair.json
+
+# Dry run first (recommended)
+tributary distribute execute --amount 1000 \
+  --token "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" \
+  --wallet-file admin-keypair.json \
+  --dry-run
+
+# Large distribution with bigger batches
+tributary distribute execute --amount 50000 \
+  --token "CustomTokenAddress" \
+  --wallet-file admin-keypair.json \
+  --batch-size 20 \
+  --confirm
+```
+
+#### `distribute simulate` - Simulate Distribution
+```bash
+tributary distribute simulate [options]
+```
+
+**Options:**
+- `--amount <amount>` - Distribution amount for simulation
+- `--token <address>` - Token address
+- `--detail` - Show detailed breakdown
+
+**Examples:**
+```bash
+# Quick simulation
+tributary distribute simulate --amount 1000
+
+# Detailed simulation with custom token
+tributary distribute simulate --amount 5000 \
+  --token "CustomTokenAddress" \
+  --detail
+```
+
+#### `distribute history` - View Distribution History
+```bash
+tributary distribute history [options]
+```
+
+**Options:**
+- `--limit <number>` - Limit results (default: 50)
+- `--from <date>` - Start date (YYYY-MM-DD)
+- `--to <date>` - End date (YYYY-MM-DD)
+- `--format <format>` - Output format: table, json, csv (default: table)
+
+### Configuration Management
+
+#### `config show` - Display Configuration
+```bash
+tributary config show [options]
+```
+
+**Options:**
+- `--section <section>` - Show specific section (project, token, distribution, etc.)
+- `--format <format>` - Output format: table, json, yaml (default: table)
+- `--show-secrets` - Show sensitive information (admin wallet, etc.)
+
+#### `config validate` - Validate Configuration
+```bash
+tributary config validate [options]
+```
+
+**Options:**
+- `--strict` - Strict validation mode
+- `--check-network` - Check network connectivity
+
+#### `config export` - Export Configuration
+```bash
+tributary config export [options]
+```
+
+**Options:**
+- `--output <path>` - Output file path
+- `--format <format>` - Export format: toml, json, yaml (default: toml)
+- `--exclude-secrets` - Exclude sensitive information
+
+## Configuration
+
+Tributary uses TOML configuration files with comprehensive validation.
+
+### Configuration Structure
+
+```toml
+[project]
+name = "MyProject"                           # Project name
+created = "2025-09-18T10:30:15Z"            # Creation timestamp
+network = "devnet"                          # Network: devnet/testnet/mainnet-beta
+
+[token]
+base_token = "So11111111111111111111111111111111111111112"     # Base token for holder selection
+admin_wallet = "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU"  # Admin wallet address
+
+[distribution]
+auto_distribute = false                      # Auto distribution (future feature)
+minimum_balance = 1.0                       # Minimum balance threshold
+batch_size = 10                             # Batch processing size
+reward_token = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"  # Default distribution token
+
+[security]
+key_encryption = true                        # Enable key encryption
+backup_enabled = true                        # Enable backups
+audit_log = true                            # Enable audit logging
+
+[network]
+timeout = 30000                             # RPC timeout (milliseconds)
+max_retries = 3                             # Maximum retry attempts
+retry_delay = 1000                          # Retry delay (milliseconds)
+
+[logging]
+level = "info"                              # Log level: debug/info/warn/error
+log_dir = "./logs"                          # Log directory
+enable_console = true                       # Console logging
+enable_file = true                          # File logging
+max_files = 14                              # Maximum log files
+max_size = "20m"                            # Maximum file size
+```
+
+### Configuration Validation
+
+All configuration parameters are validated using Zod schemas:
+- **Solana addresses** validated for Base58 format
+- **Network values** restricted to valid options
+- **Numeric values** validated for acceptable ranges
+- **Required fields** enforced when auto_distribute is enabled
+
+## Token Distribution Flow
+
+### Understanding the Process
+
+1. **Base Token Selection**: Choose which token holders to target (e.g., SOL holders)
+2. **Holder Collection**: Gather all addresses holding the base token above threshold
+3. **Ratio Calculation**: Calculate each holder's percentage of total supply
+4. **Distribution Token**: Choose what token to distribute (can be different from base token)
+5. **Proportional Distribution**: Distribute based on base token ratios
+
+### Example Scenario
+
+**Goal**: Distribute 10,000 USDC to SOL holders proportionally
+
+```bash
+# 1. Initialize project for SOL holders
+tributary init --name "SOLRewards" \
+  --token "So11111111111111111111111111111111111111112" \
+  --admin "YourAdminWallet"
+
+# 2. Collect SOL holders (minimum 1 SOL)
+tributary collect --threshold 1.0
+
+# 3. Simulate USDC distribution
+tributary distribute simulate --amount 10000 \
+  --token "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+
+# 4. Execute actual distribution
+tributary distribute execute --amount 10000 \
+  --token "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" \
+  --wallet-file admin-keypair.json
+```
+
+**Result**: Each SOL holder receives USDC proportional to their SOL holdings
+- Holder with 100 SOL (10% of supply) → 1,000 USDC
+- Holder with 50 SOL (5% of supply) → 500 USDC
+- etc.
+
+## API Usage (Programmatic)
+
+Tributary can be used as a TypeScript/JavaScript library:
+
+```typescript
+import {
+  WalletCollectorService,
+  DistributionService,
+  ConfigManager
+} from 'tributary';
+import { PublicKey, Keypair } from '@solana/web3.js';
+
+// Initialize configuration
+const configManager = new ConfigManager('./tributary.toml');
+await configManager.loadConfig();
+
+// Initialize services
+const collectorService = new WalletCollectorService('devnet');
+const distributionService = new DistributionService('devnet', adminKeypair);
+
+// Collect token holders
+const holders = await collectorService.collectWallets({
+  tokenAddress: new PublicKey('So11111111111111111111111111111111111111112'),
+  threshold: 1.0,
+  useCache: true,
+  excludeAddresses: [new PublicKey('ExcludeThisAddress')]
+});
+
+console.log(`Found ${holders.length} eligible holders`);
+
+// Simulate distribution
+const simulationResult = await distributionService.simulateDistribution({
+  amount: 1000,
+  tokenAddress: new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'),
+  holders: holders
+});
+
+console.log(`Estimated gas cost: ${simulationResult.estimatedGasCost} SOL`);
+
+// Execute distribution with progress tracking
+const distribution = await distributionService.executeDistribution({
+  amount: 1000,
+  tokenAddress: new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'),
+  holders: holders
+}, (progress) => {
+  console.log(`Progress: ${progress.completed}/${progress.total} (${progress.rate.toFixed(1)} tx/sec)`);
+});
+
+console.log(`Distribution completed: ${distribution.getSuccessfulCount()} successful transfers`);
+```
+
+## Error Handling
+
+Tributary provides comprehensive error handling with specific exit codes:
+
+| Code | Type | Description |
+|------|------|-------------|
+| **0** | Success | Operation completed successfully |
+| **1** | General Error | Unexpected error occurred |
+| **2** | Validation Error | Invalid command-line arguments |
+| **3** | Configuration Error | Invalid or missing configuration |
+| **4** | Network Error | RPC connection or blockchain issues |
+| **5** | Authentication Error | Invalid wallet or permission issues |
+| **6** | Data Integrity Error | Corrupted data or validation failure |
+| **7** | Resource Error | Insufficient funds or resources |
+| **8** | Timeout Error | Operation timed out |
+
+### Error Examples
+
+```bash
+# Configuration error
+❌ ConfigurationError: Configuration file not found: ./tributary.toml
+💡 Solution: Run 'tributary init' to create a new project
+
+# Validation error
+❌ ValidationError: Invalid token address format
+💡 Expected: Base58-encoded Solana token address (32-44 characters)
+
+# Resource error
+❌ ResourceError: Insufficient token balance. Required: 10,000.00 USDC, Available: 8,756.43 USDC
+💡 Solution: Add more USDC to admin wallet or reduce distribution amount
+```
+
+## Security Considerations
+
+### Private Key Management
+- **Never commit** private keys to version control
+- **Use secure storage** for keypair files
+- **Set proper file permissions** (600) on keypair files
+- **Consider hardware wallets** for production use
+
+### Network Safety
+- **Always test on devnet** before mainnet deployment
+- **Use dry-run mode** before actual distribution
+- **Double-check token addresses** before execution
+- **Verify recipient lists** in simulation mode
+
+### Mainnet Precautions
+```bash
+# Always simulate first on mainnet
+tributary distribute simulate --amount 1000 --token "TokenAddress"
+
+# Use dry-run for final verification
+tributary distribute execute --amount 1000 --token "TokenAddress" \
+  --wallet-file keypair.json --dry-run
+
+# Execute with confirmation
+tributary distribute execute --amount 1000 --token "TokenAddress" \
+  --wallet-file keypair.json
+```
+
+## Development
+
+### Prerequisites
+- Node.js 18.0.0 or higher
+- npm 8.0.0 or higher
+- TypeScript 5.6 or higher
+
+### Building from Source
+```bash
+git clone https://github.com/akameGusya/tributary.git
+cd tributary/200_src
+npm install
+npm run build
+```
+
+### Development Scripts
+```bash
+npm run dev          # Run in development mode
+npm run build        # Build for production
+npm run typecheck    # Type checking only
+npm test             # Run test suite
+npm run test:watch   # Watch mode testing
+npm run test:coverage # Generate coverage report
+npm run lint         # Run ESLint
+npm run lint:fix     # Fix ESLint issues
+npm run format       # Format with Prettier
+npm run format:check # Check Prettier formatting
+```
+
+### Testing
+```bash
+# Run all tests
+npm test
+
+# Run tests with coverage
+npm run test:coverage
+
+# Watch mode for development
+npm run test:watch
+```
+
+### Code Quality
+The project maintains high code quality standards:
+- **ESLint** with TypeScript rules
+- **Prettier** for consistent formatting
+- **Jest** for comprehensive testing (80% coverage target)
+- **Strict TypeScript** configuration
+- **Zod** for runtime validation
+
+## Current Status & Roadmap
+
+### ✅ Current Features (v0.1.0)
+- ✅ Project initialization and configuration
+- ✅ Token holder collection with caching
+- ✅ Manual distribution execution
+- ✅ Distribution simulation and validation
+- ✅ Comprehensive CLI with progress tracking
+- ✅ TOML configuration with validation
+- ✅ Structured logging and error handling
+- ✅ Batch processing and retry mechanisms
+- ✅ TypeScript API for programmatic use
+
+### 🚧 Future Features
+- [ ] **Auto Distribution**: Scheduled/triggered distributions
+- [ ] **Web Dashboard**: Browser-based interface
+- [ ] **Advanced Filtering**: Complex holder selection rules
+- [ ] **Multi-token Support**: Distribute multiple tokens simultaneously
+- [ ] **Webhook Integration**: External event triggers
+- [ ] **Mobile App**: Mobile interface for monitoring
+- [ ] **Analytics Dashboard**: Distribution analytics and reporting
+
+### 🔄 Known Limitations
+- **Manual execution only**: Automatic distribution not yet implemented
+- **Single token distribution**: One token per distribution run
+- **Basic filtering**: Limited holder exclusion options
+- **CLI only**: No web interface available
+
+## Contributing
+
+We welcome contributions! Please follow our project guidelines:
+
+### Getting Started
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes with tests
+4. Ensure all quality checks pass (`npm run prepublishOnly`)
+5. Commit changes following [Conventional Commits](https://www.conventionalcommits.org/)
+6. Push to branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
+
+### Development Guidelines
+- **Follow project rules**: See [`PROJECT_RULES.md`](PROJECT_RULES.md) for comprehensive guidelines
+- **Quality standards**: All code must pass TypeScript, ESLint, and test checks
+- **Semantic versioning**: Follow [Semantic Versioning 2.0.0](https://semver.org/)
+- **Documentation**: Update relevant documentation for new features
+- **Testing**: Maintain comprehensive test coverage
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Support & Community
+
+- **GitHub Issues**: [Report bugs or request features](https://github.com/akameGusya/tributary/issues)
+- **Documentation**: [Additional docs in `/100_doc`](100_doc/) and [`PROJECT_RULES.md`](PROJECT_RULES.md)
+- **NPM Package**: [`@akamellc/tributary`](https://www.npmjs.com/package/@akamellc/tributary)
+
+---
+
+**⚠️ Important Disclaimer**: This software is provided as-is for educational and development purposes. Always test thoroughly on devnet before using on mainnet. The authors are not responsible for any loss of funds. Use at your own risk and ensure you understand the implications of token distributions before execution.

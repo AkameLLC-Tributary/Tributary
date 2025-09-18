@@ -1,0 +1,20 @@
+{
+  "solana": {
+    "rpcUrl": "https://api.mainnet-beta.solana.com",
+    "commitment": "finalized",
+    "maxRetries": 5,
+    "timeout": 60000
+  },
+  "cache": {
+    "ttl": 600000,
+    "maxSize": 5000
+  },
+  "security": {
+    "keyEncryption": true,
+    "sessionTimeout": 1800000
+  },
+  "performance": {
+    "batchSize": 200,
+    "concurrentRequests": 20
+  }
+}

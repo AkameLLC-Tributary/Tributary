@@ -1,0 +1,44 @@
+{
+  "name": "tributary-test-automation",
+  "version": "1.0.0",
+  "description": "Automated testing suite for Tributary CLI",
+  "main": "test-runner.js",
+  "scripts": {
+    "test": "node test-runner.js",
+    "test:comprehensive": "node comprehensive-test-runner.js",
+    "test:all": "node comprehensive-test-runner.js --real-distribution",
+    "test:devnet": "node test-runner.js --phase=devnet",
+    "test:testnet": "node test-runner.js --phase=testnet",
+    "test:performance": "node test-runner.js --phase=performance",
+    "test:ci": "node ci-runner.js",
+    "test:real-distribution": "node real-distribution-runner.js",
+    "test:phase1": "node comprehensive-test-runner.js --phase=phase1",
+    "test:phase2": "node comprehensive-test-runner.js --phase=phase2",
+    "test:phase3": "node comprehensive-test-runner.js --phase=phase3",
+    "test:phase4": "node comprehensive-test-runner.js --phase=phase4",
+    "test:phase5": "node comprehensive-test-runner.js --phase=phase5",
+    "setup": "node setup.js",
+    "cleanup": "node cleanup.js"
+  },
+  "keywords": [
+    "solana",
+    "testing",
+    "automation",
+    "cli",
+    "tributary"
+  ],
+  "author": "akameGusya",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "commander": "^9.0.0",
+    "inquirer": "^8.0.0"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
+}

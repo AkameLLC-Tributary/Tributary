@@ -42,7 +42,7 @@ export class TributaryCLI {
     this.program
       .name('tributary')
       .description('Solana token distribution system')
-      .version('0.1.0')
+      .version('0.2.0')
       .option('--config <path>', 'Configuration file path', './tributary.toml')
       .option('--output <format>', 'Output format (table/json/yaml)', 'table')
       .option('--log-level <level>', 'Log level (debug/info/warn/error)', 'info')
@@ -65,8 +65,7 @@ export class TributaryCLI {
       .requiredOption('--name <name>', 'Project name (1-100 characters)')
       .requiredOption('--token <address>', 'Base token address (Solana Base58 format)')
       .requiredOption('--admin <address>', 'Admin wallet address')
-      .option('--network <network>', 'Target network', 'devnet')
-      .option('--force, -f', 'Overwrite existing configuration')
+      .option('-f, --force', 'Overwrite existing configuration')
       .option('--interactive, -i', 'Interactive mode')
       .action(async (options) => {
         try {
@@ -200,6 +199,9 @@ export class TributaryCLI {
   private async handleInit(options: any): Promise<void> {
     this.logger.info('Initializing Tributary project');
 
+    // Get network from global options for init command (since it's removed from local options)
+    const globalOpts = this.program.opts();
+
     if (options.interactive) {
       const answers = await inquirer.prompt([
         {
@@ -232,11 +234,14 @@ export class TributaryCLI {
 
     this.validateRequiredOptions(options, ['name', 'token', 'admin']);
 
+    // Use network from global options, default to devnet if not specified
+    const network = (globalOpts.network || 'devnet') as NetworkType;
+
     const config = await this.configManager.initializeProject({
       name: options.name,
       baseToken: options.token,
       adminWallet: options.admin,
-      network: options.network as NetworkType,
+      network: network,
       force: options.force
     });
 

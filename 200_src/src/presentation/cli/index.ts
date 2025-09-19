@@ -1,11 +1,13 @@
 import { Command } from 'commander';
 import { PublicKey, Keypair } from '@solana/web3.js';
 import { promises as fs } from 'fs';
+import path from 'path';
 import chalk from 'chalk';
 import * as ProgressBar from 'cli-progress';
 import inquirer from 'inquirer';
 
 import { ConfigManager } from '../../config';
+import { ConfigManager as ConfigManagerClass } from '../../infrastructure/config/ConfigManager';
 import { WalletCollectorService } from '../../application/services/WalletCollectorService';
 import { DistributionService } from '../../application/services/DistributionService';
 import { FileStorage } from '../../infrastructure/storage';
@@ -122,6 +124,7 @@ export class TributaryCLI {
       .description('Simulate token distribution')
       .option('--amount <amount>', 'Distribution amount')
       .option('--token <address>', 'Token address')
+      .option('--batch-size <number>', 'Batch size for simulation', '10')
       .option('--detail', 'Show detailed results')
       .action(async (options) => {
         try {
@@ -249,11 +252,15 @@ export class TributaryCLI {
     await this.loadConfig();
     const config = this.configManager.getProjectConfig();
 
+    // Use network override if provided
+    const globalOpts = this.program.opts();
+    const network = (globalOpts.network || config.network) as NetworkType;
+
     const tokenAddress = options.token
       ? new PublicKey(options.token)
       : config.baseToken;
 
-    const collectorService = new WalletCollectorService(config.network);
+    const collectorService = new WalletCollectorService(network);
 
     const collectOptions = {
       tokenAddress,
@@ -268,7 +275,7 @@ export class TributaryCLI {
 
     console.log(chalk.blue('🔍 Collecting token holders...'));
     console.log(`Token: ${tokenAddress.toString()}`);
-    console.log(`Network: ${config.network}`);
+    console.log(`Network: ${network}`);
     console.log(`Threshold: ${collectOptions.threshold} tokens`);
 
     const progressBar = new ProgressBar.SingleBar({
@@ -294,9 +301,16 @@ export class TributaryCLI {
     console.log(chalk.blue('👥 Total holders found:'), holders.length);
 
     if (options.outputFile) {
+      let format = 'json';
+      if (options.outputFile.endsWith('.csv')) {
+        format = 'csv';
+      } else if (options.outputFile.endsWith('.yaml') || options.outputFile.endsWith('.yml')) {
+        format = 'yaml';
+      }
+
       const outputPath = await collectorService.exportWallets(
         holders,
-        options.outputFile.endsWith('.csv') ? 'csv' : 'json',
+        format as any,
         options.outputFile
       );
       console.log(chalk.blue('💾 Saved to:'), outputPath);
@@ -308,6 +322,10 @@ export class TributaryCLI {
   private async handleDistributeExecute(options: any): Promise<void> {
     await this.loadConfig();
     const config = this.configManager.getProjectConfig();
+
+    // Use network override if provided
+    const globalOpts = this.program.opts();
+    const network = (globalOpts.network || config.network) as NetworkType;
 
     const amount = parseFloat(options.amount);
     if (amount <= 0) {
@@ -332,7 +350,7 @@ export class TributaryCLI {
       batchSize: options.batchSize ? parseInt(options.batchSize) : 10
     };
 
-    const distributionService = new DistributionService(config.network, adminKeypair);
+    const distributionService = new DistributionService(network, adminKeypair);
 
     if (options.dryRun) {
       console.log(chalk.yellow('🧪 Running dry run simulation...'));
@@ -405,6 +423,10 @@ export class TributaryCLI {
     await this.loadConfig();
     const config = this.configManager.getProjectConfig();
 
+    // Use network override if provided
+    const globalOpts = this.program.opts();
+    const network = (globalOpts.network || config.network) as NetworkType;
+
     const amount = options.amount ? parseFloat(options.amount) : 1000;
     const tokenAddress = options.token
       ? new PublicKey(options.token)
@@ -418,11 +440,12 @@ export class TributaryCLI {
     const distributionRequest: DistributionRequest = {
       amount,
       tokenAddress,
-      holders
+      holders,
+      batchSize: options.batchSize ? parseInt(options.batchSize) : 10
     };
 
     const adminKeypair = Keypair.generate(); // Dummy keypair for simulation
-    const distributionService = new DistributionService(config.network, adminKeypair);
+    const distributionService = new DistributionService(network, adminKeypair);
 
     const simulation = await distributionService.simulateDistribution(distributionRequest);
     this.displaySimulationResult(simulation);
@@ -478,12 +501,28 @@ export class TributaryCLI {
     await this.loadConfig();
     const config = this.configManager.getConfig();
 
-    const outputPath = options.output || `tributary-config.${options.format}`;
+    const outputPath = options.output || `config.${options.format}`;
+
+    // Ensure output directory exists
+    const outputDir = path.dirname(outputPath);
+    await fs.mkdir(outputDir, { recursive: true });
+
+    // Filter out secrets if requested
+    const exportConfig = options.excludeSecrets ? this.maskSecrets(config) : config;
 
     if (options.format === 'json') {
-      await fs.writeFile(outputPath, JSON.stringify(config, null, 2));
+      await fs.writeFile(outputPath, JSON.stringify(exportConfig, null, 2));
+    } else if (options.format === 'yaml') {
+      // Add YAML support - for now export as JSON until yaml library is added
+      await fs.writeFile(outputPath, JSON.stringify(exportConfig, null, 2));
+    } else if (options.format === 'toml') {
+      // Use the ConfigManager's TOML serialization
+      const configManager = new ConfigManagerClass();
+      const tomlContent = (configManager as any).stringifyToml(exportConfig);
+      await fs.writeFile(outputPath, tomlContent);
     } else {
-      await fs.writeFile(outputPath, JSON.stringify(config, null, 2));
+      // Default to JSON for unknown formats
+      await fs.writeFile(outputPath, JSON.stringify(exportConfig, null, 2));
     }
 
     console.log(chalk.green('✅ Configuration exported to'), outputPath);
@@ -544,6 +583,18 @@ export class TributaryCLI {
   private displayTokenHolders(holders: TokenHolder[], format: OutputFormat): void {
     if (format === 'json') {
       console.log(JSON.stringify(holders, null, 2));
+    } else if (format === 'yaml') {
+      // Simple YAML-like output for now - proper YAML library implementation recommended
+      console.log('holders:');
+      holders.slice(0, 10).forEach((h, i) => {
+        console.log(`  - address: ${h.address.toString()}`);
+        console.log(`    balance: ${h.balance.toFixed(4)}`);
+        console.log(`    percentage: ${h.percentage.toFixed(2)}`);
+        if (i < 9 && i < holders.length - 1) console.log();
+      });
+      if (holders.length > 10) {
+        console.log(`# ... and ${holders.length - 10} more`);
+      }
     } else {
       console.log();
       console.table(holders.slice(0, 10).map(h => ({

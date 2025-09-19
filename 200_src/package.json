@@ -1,6 +1,6 @@
 {
   "name": "@akamellc/tributary",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "Solana token distribution system",
   "main": "dist/index.js",
   "bin": {

@@ -6,12 +6,16 @@ export interface TokenHolder {
   percentage: number;
 }
 
+export type DistributionMode = 'equal' | 'proportional';
+
 export interface DistributionRequest {
   amount: number;
   tokenAddress: PublicKey;
   holders: TokenHolder[];
+  mode?: DistributionMode;
   excludeAddresses?: PublicKey[];
   batchSize?: number;
+  minimumAmount?: number;
 }
 
 export interface DistributionResult {

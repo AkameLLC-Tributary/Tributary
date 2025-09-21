@@ -4,6 +4,14 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6+-blue.svg)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-18.0+-green.svg)](https://nodejs.org/)
 
+## ⚠️ Important Notice
+
+**Testnet Testing Only**: This software has been tested primarily on Solana Testnet. When using on Mainnet, please proceed with caution and thoroughly test your configurations in non-production environments first.
+
+**Bug Reporting**: If you encounter any issues or bugs, please report them through our [GitHub Issues](https://github.com/akameGusya/tributary/issues). Your feedback helps improve the reliability and security of Tributary.
+
+---
+
 A powerful and user-friendly Solana token distribution system that enables proportional token distribution to holders based on their current balance ratios.
 
 ## Overview
@@ -82,6 +90,9 @@ tributary collect --token "So11111111111111111111111111111111111111112" --thresh
 tributary collect --threshold 0.1 \
   --exclude "LargeHolder1,LargeHolder2" \
   --output-file holders.json
+
+# Disable cache for fresh data collection
+tributary collect --cache false --threshold 0.1
 ```
 
 ### 3. Simulate Distribution (Recommended)
@@ -162,7 +173,7 @@ tributary collect [options]
 - `--token <address>` - Token address to collect holders for (uses base_token from config if omitted)
 - `--threshold <amount>` - Minimum balance threshold (default: 0)
 - `--max-holders <number>` - Maximum number of holders to collect
-- `--output-file <path>` - Save results to file (JSON or CSV format)
+- `--output-file <path>` - Save results to file (auto-detects format from extension: .json, .csv, .yaml)
 - `--cache, -c` - Use cache (default: true)
 - `--cache-ttl <seconds>` - Cache TTL in seconds (default: 3600)
 - `--exclude <addresses>` - Exclude specific addresses (comma-separated)
@@ -174,6 +185,13 @@ tributary collect --threshold 10
 
 # Collect and save to file
 tributary collect --threshold 1 --output-file holders.csv
+
+# Save in different formats
+tributary collect --threshold 1 --output-file holders.json  # JSON format
+tributary collect --threshold 1 --output-file holders.yaml  # YAML format
+
+# Disable cache for real-time data
+tributary collect --cache false --threshold 1
 
 # Exclude large holders from collection
 tributary collect --exclude "Whale1Address,Whale2Address" --threshold 0.1
@@ -282,6 +300,103 @@ tributary config export [options]
 - `--output <path>` - Output file path
 - `--format <format>` - Export format: toml, json, yaml (default: toml)
 - `--exclude-secrets` - Exclude sensitive information
+
+## Cache System
+
+Tributary includes an intelligent caching system to improve performance and reduce RPC calls.
+
+### Cache Functionality
+
+**Default Behavior:**
+- Cache is **enabled by default** for all operations
+- Cached data improves response speed significantly
+- Cache automatically expires based on TTL settings
+
+**Cache Control:**
+```bash
+# Enable cache (default behavior)
+tributary collect --cache true
+
+# Disable cache for real-time data
+tributary collect --cache false
+
+# Custom cache TTL (time-to-live)
+tributary collect --cache-ttl 7200  # 2 hours
+```
+
+**When to Disable Cache:**
+- Need real-time, up-to-date holder information
+- Testing with frequently changing data
+- Debugging distribution calculations
+- First-time setup verification
+
+**Performance Impact:**
+- Cache enabled: Fast response for repeated operations
+- Cache disabled: Slower but always current data
+
+### Cache Location
+Cache files are stored locally and automatically managed by the system.
+
+## Output File Formats
+
+Tributary supports multiple output formats for token holder data collection.
+
+### Supported Formats
+
+**JSON Format (.json)**:
+- Structured data with full metadata
+- Machine-readable format
+- Preserves data types and precision
+- Ideal for programmatic processing
+
+```json
+[
+  {
+    "address": "D8zGvbM3w6bcAsnfWcZnWEz2GLeK7LPVftqwsMDCkcHk",
+    "balance": "10999999990.000002",
+    "percentage": 100.0000
+  },
+  {
+    "address": "22XkWSj5b7MTgaJr5eSs6Wd1dPzHEaZrQNjW3BeQnGv4",
+    "balance": "100.0000",
+    "percentage": 0.0009
+  }
+]
+```
+
+**CSV Format (.csv)**:
+- Spreadsheet-compatible format
+- Header row included automatically
+- Easy to import into Excel/Google Sheets
+- Human-readable tabular data
+
+```csv
+Address,Balance,Percentage
+D8zGvbM3w6bcAsnfWcZnWEz2GLeK7LPVftqwsMDCkcHk,10999999990.000002,100.0000
+22XkWSj5b7MTgaJr5eSs6Wd1dPzHEaZrQNjW3BeQnGv4,100.0000,0.0009
+```
+
+**YAML Format (.yaml/.yml)**:
+- Human-readable structured format
+- Configuration-friendly
+- Preserves data hierarchy
+
+### Format Detection
+File format is automatically detected from the file extension:
+
+```bash
+# Automatic format detection
+tributary collect --output-file holders.json   # → JSON format
+tributary collect --output-file holders.csv    # → CSV format
+tributary collect --output-file holders.yaml   # → YAML format
+tributary collect --output-file data.txt       # → JSON format (default)
+```
+
+### Use Cases
+
+- **JSON**: API integration, data processing, backup storage
+- **CSV**: Spreadsheet analysis, reporting, data visualization
+- **YAML**: Configuration files, human-readable documentation
 
 ## Configuration
 
@@ -590,4 +705,17 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**⚠️ Important Disclaimer**: This software is provided as-is for educational and development purposes. Always test thoroughly on devnet before using on mainnet. The authors are not responsible for any loss of funds. Use at your own risk and ensure you understand the implications of token distributions before execution.
+## ⚠️ Important Testing & Mainnet Disclaimer
+
+**Testing Status**: This software has been comprehensively tested on **Testnet only**. While extensive security testing has been performed (T210-T220 security tests with excellent results), **mainnet usage requires additional verification**.
+
+**Before Mainnet Use**:
+- ✅ **Always test thoroughly on devnet/testnet first**
+- ⚠️ **Verify all parameters in simulation mode**
+- 🔍 **Double-check token addresses and amounts**
+- 💰 **Start with small amounts for initial mainnet testing**
+- 🛡️ **Consider the risks of large-scale distributions**
+
+**Bug Reporting**: If you encounter any issues, bugs, or unexpected behavior, please report them through [GitHub Issues](https://github.com/akameGusya/tributary/issues). Your feedback helps improve the security and reliability of this tool for the entire community.
+
+**Disclaimer**: This software is provided as-is for educational and development purposes. The authors are not responsible for any loss of funds. Use at your own risk and ensure you understand the implications of token distributions before execution.

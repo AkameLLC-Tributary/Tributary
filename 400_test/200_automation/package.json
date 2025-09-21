@@ -30,6 +30,8 @@
   "author": "akameGusya",
   "license": "MIT",
   "dependencies": {
+    "@akamellc/tributary": "file:../../200_src/akamellc-tributary-0.2.4.tgz",
+    "bs58": "^6.0.0",
     "chalk": "^4.1.2",
     "commander": "^9.0.0",
     "inquirer": "^8.0.0"

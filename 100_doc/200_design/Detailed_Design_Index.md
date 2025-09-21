@@ -57,6 +57,22 @@ This index defines the structure of the Tributary system detailed design documen
 - Scaling design
 - Resource management specifications
 
+### 7. Parameter Management System Detailed Design
+**File Name**: `Detailed_Design_Parameters.md`
+**Responsibility Scope**:
+- Parameter priority architecture
+- Configuration file and environment variable management
+- User safety guarantee mechanisms
+- Configuration system implementation details
+
+### 8. Parameter Configuration Guide
+**File Name**: `Parameter_Configuration_Guide.md`
+**Responsibility Scope**:
+- User-oriented configuration procedures
+- Environment-specific configuration examples
+- Troubleshooting
+- Best practices
+
 ## Document Relationships
 
 ```
@@ -73,6 +89,8 @@ Detailed Design Document Index (This Document)
 │  • Interface Detailed Design                           │
 │  • Security Detailed Design                            │
 │  • Performance Detailed Design                         │
+│  • Parameter Management System Detailed Design         │
+│  • Parameter Configuration Guide                       │
 └─────────────────────────────────────────────────────────┘
     ↓
 Implementation Specifications and Test Specifications

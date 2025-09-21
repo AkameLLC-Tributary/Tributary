@@ -1,0 +1,334 @@
+{
+  "error": "Node.js version check failed: version.trim is not a function",
+  "stack": "Error: Node.js version check failed: version.trim is not a function\n    at InteractiveComprehensiveTestRunner.verifyPrerequisites (C:\\Users\\kanem\\Desktop\\Work\\Crypt\\Tributary\\400_test\\200_automation\\src\\test-runner.js:115:15)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async InteractiveComprehensiveTestRunner.run (C:\\Users\\kanem\\Desktop\\Work\\Crypt\\Tributary\\400_test\\200_automation\\src\\interactive-comprehensive-test-runner.js:53:7)",
+  "timestamp": "2025-09-19T17:04:01.659Z",
+  "executionPhase": "init",
+  "partialResults": [],
+  "testMatrix": {
+    "phase1": [
+      {
+        "id": "T001",
+        "name": "Basic initialization",
+        "priority": "high"
+      },
+      {
+        "id": "T002",
+        "name": "Interactive initialization",
+        "priority": "high"
+      },
+      {
+        "id": "T003",
+        "name": "Force overwrite",
+        "priority": "medium"
+      },
+      {
+        "id": "T004",
+        "name": "Invalid parameters",
+        "priority": "high"
+      },
+      {
+        "id": "T005",
+        "name": "Network-specific initialization",
+        "priority": "high"
+      },
+      {
+        "id": "T040",
+        "name": "Config show",
+        "priority": "high"
+      },
+      {
+        "id": "T041",
+        "name": "Config validate",
+        "priority": "high"
+      },
+      {
+        "id": "T042",
+        "name": "Config export",
+        "priority": "medium"
+      },
+      {
+        "id": "T043",
+        "name": "Invalid config detection",
+        "priority": "high"
+      },
+      {
+        "id": "T044",
+        "name": "Sensitive info masking",
+        "priority": "high"
+      },
+      {
+        "id": "T050",
+        "name": "RPC connection error",
+        "priority": "high"
+      },
+      {
+        "id": "T051",
+        "name": "Timeout handling",
+        "priority": "medium"
+      },
+      {
+        "id": "T052",
+        "name": "Retry function",
+        "priority": "medium"
+      },
+      {
+        "id": "T053",
+        "name": "Network-specific RPC configuration",
+        "priority": "high"
+      },
+      {
+        "id": "T054",
+        "name": "CLI RPC URL override",
+        "priority": "high"
+      },
+      {
+        "id": "T055",
+        "name": "Network override with RPC selection",
+        "priority": "high"
+      },
+      {
+        "id": "T060",
+        "name": "Invalid token address",
+        "priority": "high"
+      },
+      {
+        "id": "T061",
+        "name": "Insufficient balance",
+        "priority": "high"
+      },
+      {
+        "id": "T062",
+        "name": "Insufficient permission",
+        "priority": "high"
+      },
+      {
+        "id": "T063",
+        "name": "Missing config file",
+        "priority": "high"
+      }
+    ],
+    "phase2": [
+      {
+        "id": "T010",
+        "name": "SOL token holder collection",
+        "priority": "high"
+      },
+      {
+        "id": "T011",
+        "name": "Threshold filtering",
+        "priority": "high"
+      },
+      {
+        "id": "T012",
+        "name": "Large holder exclusion",
+        "priority": "medium"
+      },
+      {
+        "id": "T013",
+        "name": "Cache functionality",
+        "priority": "medium"
+      },
+      {
+        "id": "T014",
+        "name": "Output file formats",
+        "priority": "medium"
+      },
+      {
+        "id": "T015",
+        "name": "Large data processing",
+        "priority": "low"
+      },
+      {
+        "id": "T020",
+        "name": "Basic distribution simulation",
+        "priority": "high"
+      },
+      {
+        "id": "T021",
+        "name": "Detailed result display",
+        "priority": "medium"
+      },
+      {
+        "id": "T022",
+        "name": "Different token simulation",
+        "priority": "high"
+      },
+      {
+        "id": "T023",
+        "name": "Calculation accuracy",
+        "priority": "high"
+      },
+      {
+        "id": "T024",
+        "name": "Gas fee estimation",
+        "priority": "medium"
+      },
+      {
+        "id": "T030",
+        "name": "Dry run execution",
+        "priority": "high"
+      },
+      {
+        "id": "T031",
+        "name": "Small distribution",
+        "priority": "high"
+      },
+      {
+        "id": "T032",
+        "name": "Medium distribution",
+        "priority": "medium"
+      },
+      {
+        "id": "T033",
+        "name": "Batch size testing",
+        "priority": "medium"
+      },
+      {
+        "id": "T034",
+        "name": "Error partial execution",
+        "priority": "high"
+      },
+      {
+        "id": "T035",
+        "name": "Transaction history",
+        "priority": "high"
+      }
+    ],
+    "phase3": [
+      {
+        "id": "T070",
+        "name": "1000 wallet collection",
+        "priority": "medium"
+      },
+      {
+        "id": "T071",
+        "name": "100 distribution processing",
+        "priority": "medium"
+      },
+      {
+        "id": "T072",
+        "name": "Memory usage monitoring",
+        "priority": "low"
+      },
+      {
+        "id": "T080",
+        "name": "Private key file loading",
+        "priority": "high"
+      },
+      {
+        "id": "T081",
+        "name": "Invalid private key",
+        "priority": "high"
+      },
+      {
+        "id": "T082",
+        "name": "Private key permissions",
+        "priority": "medium"
+      }
+    ],
+    "phase4": [
+      {
+        "id": "T090",
+        "name": "Mainnet config validation",
+        "priority": "high"
+      },
+      {
+        "id": "T091",
+        "name": "Production settings",
+        "priority": "high"
+      },
+      {
+        "id": "T092",
+        "name": "Mainnet warning messages",
+        "priority": "medium"
+      }
+    ],
+    "phase5": [
+      {
+        "id": "T100",
+        "name": "Distribution history display",
+        "priority": "high"
+      },
+      {
+        "id": "T101",
+        "name": "History date filtering",
+        "priority": "high"
+      },
+      {
+        "id": "T102",
+        "name": "History output formats",
+        "priority": "medium"
+      },
+      {
+        "id": "T110",
+        "name": "Log level operations",
+        "priority": "medium"
+      },
+      {
+        "id": "T111",
+        "name": "Audit log recording",
+        "priority": "high"
+      },
+      {
+        "id": "T112",
+        "name": "Log file management",
+        "priority": "medium"
+      },
+      {
+        "id": "T120",
+        "name": "YAML output validation",
+        "priority": "medium"
+      },
+      {
+        "id": "T121",
+        "name": "CSV output validation",
+        "priority": "medium"
+      },
+      {
+        "id": "T122",
+        "name": "Large data output",
+        "priority": "low"
+      },
+      {
+        "id": "T130",
+        "name": "Network switching all commands",
+        "priority": "high"
+      },
+      {
+        "id": "T131",
+        "name": "Network priority settings",
+        "priority": "high"
+      },
+      {
+        "id": "T140",
+        "name": "Error code validation",
+        "priority": "high"
+      },
+      {
+        "id": "T141",
+        "name": "Error message quality",
+        "priority": "medium"
+      },
+      {
+        "id": "T142",
+        "name": "Error state preservation",
+        "priority": "high"
+      },
+      {
+        "id": "T150",
+        "name": "File read/write operations",
+        "priority": "medium"
+      },
+      {
+        "id": "T151",
+        "name": "Backup functionality",
+        "priority": "medium"
+      },
+      {
+        "id": "T152",
+        "name": "Directory management",
+        "priority": "medium"
+      }
+    ]
+  }
+}

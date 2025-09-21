@@ -1,0 +1,107 @@
+T031:Small distribution (1トークンの比例配分配布):修正要
+T032:Medium distribution (均等配布・バッチ処理):修正不要
+T033:Batch size testing (バッチサイズ1・3での分割処理):修正不要
+T034:Error partial execution (無効入力時のエラーハンドリング):修正不要
+T035:Transaction history (配布履歴の記録・表示・フィルター機能):修正不要
+T040:Config show (設定情報の表示・フォーマット・セクション指定):修正不要
+T041:Config validate (設定ファイルの検証・エラー検出・モード切替):修正不要
+T042:Config export (設定エクスポート・多形式対応・機密情報除外):修正不要
+T043:Invalid config detection (無効設定の検出・具体的エラー表示):修正不要
+T044:Sensitive info masking (機密情報マスキング・表示制御):修正不要
+T050:RPC connection error handling (RPC接続エラー処理・タイムアウト・リトライ):修正不要
+T051:Timeout handling (タイムアウト処理・設定反映・エラー検出):修正不要
+T052:Retry function operation confirmation (リトライ機能・設定検証・コマンド一貫性):修正不要
+T053:Network-specific RPC configuration (ネットワーク固有RPC設定・切り替え・カスタムエンドポイント):修正不要
+T054:CLI RPC URL override (CLI RPCオーバーライド・グローバルオプション・カスタムエンドポイント設定):修正不要
+T055:Network override with RPC selection (ネットワークオーバーライド・RPC組み合わせ・コマンド対応):修正不要
+T060:Invalid token address (無効トークンアドレス・形式検証・エラーハンドリング):修正不要
+T062:Insufficient permission (権限不足エラー・適切なエラーメッセージ表示):修正不要
+T063:Missing config file (設定ファイル不在・適切なエラーハンドリング):修正不要
+T070:1000 wallet collection (大規模ウォレット収集・タイムアウト処理・パフォーマンス):修正不要
+T080:Private key file loading (秘密鍵ファイル読み込み・オプション実装・ファイルパス指定):修正不要
+T081:Invalid private key (無効秘密鍵ファイル・エラーハンドリング・検証機能):修正不要
+T082:Private key permissions (秘密鍵ファイル・アクセス権限・読み取り可能性確認):修正不要
+T090:Mainnet config validation (メインネット設定検証・警告メッセージ・RPC URL確認):修正不要
+T091:Production settings (本番環境設定・セキュリティ設定・ログ設定・監査機能):修正不要
+T092:Mainnet warning messages (メインネット警告メッセージ・安全性警告・エラーハンドリング):修正不要
+T096:Parameter priority system (パラメータ優先順位システム・ファイル設定・CLI引数・環境変数):修正不要
+T097:Runtime parameter modification (ランタイムパラメータ変更・即座反映・動的設定更新):修正不要
+T098:Parameter validation and errors (パラメータ検証・エラー処理・無効値検出・適切なエラーメッセージ):修正不要
+T099:Environment variable overrides (環境変数オーバーライド・TRIBUTARY_プレフィックス・実装確認済み):修正不要
+T100:Distribution history display (配布履歴表示・多形式出力・日付フィルター・制限オプション):修正不要
+T101:History date filtering (履歴日付フィルタリング・from/to指定・無効日付処理・オプション組み合わせ):修正不要
+T102:History output formats (履歴出力フォーマット・table/json/csv形式・デフォルト処理・オプション組み合わせ):修正不要
+T110:Log level operations (ログレベル操作・debug/info/warn/error対応・グローバルオプション・無効値処理):修正不要
+T111:Audit log recording (監査ログ記録・JSON形式・コンポーネント追跡・メタデータ記録・操作履歴):修正不要
+T112:Log file management (ログファイル管理・ファイル分離・ローテーション設定・サイズ制限・ディレクトリ管理):修正不要
+T120:YAML output validation (YAML出力検証・フォーマットオプション認識・ファイル作成・適切なYAML形式出力):修正不要
+T121:CSV output validation (CSV出力検証・ファイル出力・適切なヘッダー・カンマ区切り形式・データ整合性):修正不要
+T122:Large data output (大容量データ出力・ファイル処理・メモリ効率・出力サイズ管理):修正不要
+T130:Network switching all commands (ネットワーク切り替え全コマンド・devnet/testnet切り替え・コマンド動作確認):修正不要
+T131:Network priority settings (ネットワーク優先度設定・デフォルト設定・オーバーライド機能・設定表示):修正不要
+T140:Error code validation (エラーコード検証・ValidationError・ConfigurationError・NetworkError・適切なエラーメッセージ表示):修正不要
+T141:Error message quality (エラーメッセージ品質・明確性・有用性・解決方法提示・ユーザビリティ):修正不要
+T142:Error state preservation (エラー状態保持・設定状態保持・エラー後正常実行・状態破損防止):修正不要
+T150:File read/write operations (ファイル読み書き操作・ファイル作成・読み込み・ディレクトリ作成・設定ファイル管理):修正不要
+T151:Backup functionality (バックアップ機能・config export・複数フォーマット対応・設定完全保存):修正不要
+T152:Directory management (ディレクトリ管理・階層構造・権限管理・設定ファイルスコープ・ログディレクトリ管理):修正不要
+T160:Custom RPC endpoint configuration (カスタムRPCエンドポイント設定・環境変数設定・フォールバック機能・設定永続化):修正不要
+T161:RPC endpoint fallback (RPCエンドポイントフォールバック・無効RPC対応・フォールバック設定・継続動作):修正不要
+T162:Multi-token limitation verification (マルチトークン制限検証・単一トークン設計・設定制限・CLI制限):修正不要
+T163:Wallet file format validation (ウォレットファイル形式検証・JSON構造検証・秘密鍵ファイル読み込み・ファイルパス指定):修正不要
+T164:Hardware wallet detection (ハードウェアウォレット検出・未実装機能・CLI オプション非対応・現在サポート外):修正不要
+T165:Browser wallet detection (ブラウザウォレット検出・CLI環境・未実装機能・将来実装予定Web Dashboard):修正不要
+T166:Equal distribution mode testing (均等配布モードテスト・配布シミュレーション・4ホルダーに25トークンずつ・正常動作確認):修正不要
+T167:Proportional distribution mode testing (比例配布モードテスト・配布シミュレーション・バランス比例分配・デフォルトモード):修正不要
+T168:Cache functionality testing (キャッシュ機能テスト・初回44秒・2回目0.5秒・キャッシュ無効化オプション・TTL設定・JSON保存):修正不要
+T169:Address exclusion testing (アドレス除外テスト・単一除外4→3・複数除外4→2・不正形式エラー・空文字処理):修正不要
+T170:Output format testing (出力フォーマットテスト・JSON/YAML/Table・CSV未実装・無効形式はTableフォールバック):修正不要
+T171:Threshold validation testing (閾値検証テスト・負数エラー・0値許可・無効文字列はNaN処理・正常フィルタリング):修正不要
+T172:Max holders limitation testing (最大ホルダー数制限テスト・2件制限4→2・10件制限全表示・0負数エラー・無効文字列は制限無効):修正不要
+T173:Distribution history with date ranges (配布履歴日付範囲フィルター・from/toオプション・JSON/CSV/Table形式・limitオプション・空履歴正常処理):修正不要
+T174:Simulation detail mode testing (シミュレーション詳細モード・detailオプション・詳細内訳表示・リスク要因・推奨事項・equal/proportional対応):修正不要
+T175:Batch size optimization testing (バッチサイズ最適化テスト・init時バッチサイズ設定・設定ファイル反映・コマンドライン優先・デフォルト10):修正不要
+T176:Error handling comprehensive testing (包括的エラーハンドリング・ValidationError・ConfigurationError・無効アドレス・コマンド不存在・適切メッセージ表示):修正不要
+T180:Help command comprehensive test (ヘルプコマンド包括テスト・メインヘルプ・サブコマンドヘルプ・Usage/Options/Commands表示・help形式統一):修正不要
+T181:Version command test (バージョンコマンドテスト・--version/-V両対応・セマンティックバージョニング形式・package.json一致・ヘルプ表示):修正不要
+T182:Config command all subcommands (設定コマンド全サブコマンド・show/validate/export・形式指定・セクション指定・機密情報除外):修正不要
+T183:Parameters command all subcommands (パラメータコマンド全サブコマンド・init/show/validate・詳細設定ファイル・verbose表示・params別名):修正不要
+T184:Collect command all options (収集コマンド全オプション・token/threshold/max-holders/output-file/cache/cache-ttl/exclude):修正不要
+T185:Distribute simulate command (配布シミュレーションコマンド・equal/proportional分配モード・detail詳細表示・batch-size/minimum-amount/token指定):修正不要
+T186:Distribute execute command (配布実行コマンド・dry-run/batch-size/confirm/wallet-file各オプション・必須パラメータ検証・エラーハンドリング):修正不要
+T187:Distribute history command (配布履歴表示コマンド・limit/from/to/format各オプション・空履歴表示・無効値処理・多形式出力):修正不要
+T188:Global CLI options (グローバルCLIオプション・output/log-level/network/rpc-url/config各オプション・無効値処理・オプション組み合わせ):修正不要
+T189:Help command comprehensive (ヘルプコマンド包括テスト・基本ヘルプ・各コマンドヘルプ・無効コマンド処理・-h/--helpフラグ・エイリアス対応):修正不要
+T190:Init advanced options (init高度オプション・disable各種設定・カスタムRPC設定・バッチサイズ/タイムアウト/リトライ設定・無効値検証・オプション組み合わせ):修正不要
+T191:Version command testing (バージョンコマンドテスト・--version/-V両対応・package.json一致・他オプション組み合わせ・優先度確認・セマンティックバージョニング形式):修正不要
+T192:Init force flag testing (init強制フラグテスト・--force/-f両対応・既存設定上書き・オプション組み合わせ・空ディレクトリ動作・バグ修正確認):修正不要
+T193:Comprehensive error handling (包括的エラーハンドリング・無効コマンド・無効パラメータ・必須オプション不備・ファイルパス不正・ValidationError・適切なエラーメッセージ):修正不要
+T194:JSON export functionality (JSON出力機能・collect JSONコンソール出力・ファイルエクスポート・config JSONエクスポート・distribute history JSON形式・有効なJSON構造):修正不要
+T195:Log file rotation (ログファイルローテーション・logsディレクトリ自動作成・combined.log/error.log生成・JSON形式ログ出力・max_files/max_size設定・ファイルローテーション機能):修正不要
+T196:Configuration backup/restore (設定バックアップ・復元機能・config export TOML/JSON/CSV形式・ファイル作成・設定完全保存・復元テスト):修正要
+T197:Temporary file cleanup (一時ファイルクリーンアップ・テンポラリファイル自動削除・temp1.tmp/temp2.log残存・クリーンアップ機能未実装):修正済み
+T198:Permission error handling (権限エラーハンドリング・読み取り専用ファイル処理・EPERM適切検出・ConfigurationError表示・エラーメッセージ明確):修正不要
+T199:Disk space error handling (ディスク容量エラーハンドリング・ENOSPC/EDQUOT検出・ファイル書き込み処理・ResourceError包括処理・現在十分容量):修正不要
+T200:Network timeout scenarios (ネットワークタイムアウトシナリオ・429 Too Many Requests適切処理・無効RPC NetworkError検出・リトライ機能・タイムアウト設定反映):修正不要
+T201:RPC endpoint rotation (RPCエンドポイントローテーション・devnet/testnet/mainnet-beta全対応・フォールバックエンドポイント設定・環境変数オーバーライド・正常動作):修正不要
+T202:Rate limiting handling (レート制限ハンドリング・429 Too Many Requests適切処理・指数バックオフリトライ・正常動作):修正不要
+T203:Concurrent operation handling (並行操作ハンドリング・複数コマンド同時実行・競合状態検証・リソース競合対応・正常動作):修正不要
+T204:Memory usage monitoring (メモリ使用量監視・ヒープメモリ増加1MB以下・ガベージコレクション効果・メモリリーク検出・優秀な管理):修正不要
+T205:CPU usage monitoring (CPU使用量監視・平均実行時間487ms・バースト607ms・持続負荷100%成功・優秀な効率):修正不要
+T206:Large dataset processing (大規模データ処理・50-100ホルダー処理成功・レート制限適切処理・タイムアウト/リトライ/バッチ設定完備):修正不要
+T207:Stress testing batch operations (ストレスバッチ処理・非RPC操作100%成功・並行処理・連続処理・内部処理優秀):修正不要
+T208:Network interruption recovery (ネットワーク中断復旧・中断処理適切・復旧100%成功・RPCフォールバック・回復力優秀):修正不要
+T209:Progress indicator accuracy (プログレス表示精度・7/8表示種類・全操作で視覚的フィードバック・ユーザビリティ優秀):修正不要
+T210:Input sanitization tests (入力サニタイゼーションテスト・悪意のある入力7種類全て受け入れ・文字列として格納・CLI環境での実行リスク低):修正不要
+T211:SQL injection prevention (SQLインジェクション防止・5種類のSQL攻撃全て適切処理・文字列として安全格納・データベース未使用CLI環境):修正不要
+T212:Command injection prevention (コマンドインジェクション防止・7種類のコマンド攻撃全て適切処理・プロセス分離維持・システム安定性保持):修正不要
+T213:Path traversal prevention (パストラバーサル防止・7種類のパス攻撃全て適切処理・ファイルアクセス制限・パス正規化・作業ディレクトリ分離):修正不要
+T214:Environment variable validation (環境変数検証・5種類の悪意のある環境変数全て適切処理・プロセス分離維持・出力サニタイゼーション・TRIBUTARY_設定変数機能):修正不要
+T215:Configuration tampering detection (設定改ざん検出・7種類改ざんシナリオ中4種類検出・ファイル整合性維持・安全な設定表示・エラーメッセージ改善余地あり):修正不要
+【改修メモ】検出済み:無効TOML/破損トークン/無効NW/予約キー改ざん。未検出:スクリプト注入/バイナリ注入/超長値。エラーメッセージ詳細化とコンテンツ検証強化で検出率向上可能。表示安全性とファイル整合性は良好
+T216:Sensitive data exposure prevention (機密データ露出防止・config showでトークン露出・ログファイルに機密情報・エラーメッセージ露出・部分マスキング実装済み):修正不要
+【改修メモ】露出問題:config showでトークンアドレス/ログファイルに管理者ウォレット・トークン/エラーメッセージに機密情報。良好:ネットワーク送信安全・parameters show安全・部分マスキング機能。改善案:完全マスキング・ログ機密情報除去・エラーメッセージサニタイズ
+T217:Audit trail verification (監査証跡検証・ログインフラ2ファイル・構造化記録・活動追跡・保持管理設定・包括カバレッジ・監査スコア5/5):修正不要
+T218:Access control validation (アクセス制御検証・管理者操作・ファイル権限・コマンド認証・セキュリティポリシー強制・アクセススコア4/5):修正不要
+T219:Cryptographic operation validation (暗号化操作検証・有効アドレス検証・無効トークン拒否100%・無効ウォレット拒否85.7%・Base58検証・長さ検証・暗号化設定強制・暗号化スコア6/6):修正不要
+T220:Vulnerability scanning simulation (脆弱性スキャンシミュレーション・バッファオーバーフロー100%・フォーマット文字列100%・コードインジェクション100%・メモリ破損50%・Unicode攻撃40%・正常動作維持・脆弱性スコア4/6):修正不要

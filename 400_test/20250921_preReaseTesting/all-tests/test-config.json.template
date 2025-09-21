@@ -1,0 +1,44 @@
+{
+  "targetToken": "YOUR_TOKEN_ADDRESS_HERE",
+  "adminWallet": "YOUR_ADMIN_WALLET_ADDRESS_HERE",
+  "cliPath": "./path/to/your/cli.js",
+  "network": "testnet",
+  "timeout": 30000,
+  "retries": 3,
+  "rpcEndpoints": {
+    "mainnet": "https://api.mainnet-beta.solana.com",
+    "testnet": "https://api.testnet.solana.com",
+    "devnet": "https://api.devnet.solana.com"
+  },
+  "testParameters": {
+    "minThreshold": 0.001,
+    "maxHolders": 100,
+    "batchSize": 50,
+    "dryRunFirst": true
+  },
+  "security": {
+    "maskSensitiveOutput": true,
+    "logLevel": "info",
+    "enableAuditTrail": true
+  },
+  "performance": {
+    "timeoutTests": [2000, 5000, 10000, 30000],
+    "retryTests": [1, 2, 3],
+    "memoryLimits": {
+      "maxHeapSize": "512mb",
+      "maxOldSpaceSize": "256mb"
+    }
+  },
+  "output": {
+    "formats": ["json", "yaml", "csv"],
+    "saveReports": true,
+    "reportDirectory": "./test-reports",
+    "verboseLogging": false
+  },
+  "safety": {
+    "confirmMainnetOperations": true,
+    "requireDryRunBeforeLive": true,
+    "maxDistributionAmount": 1.0,
+    "testNetworkOnly": true
+  }
+}

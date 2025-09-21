@@ -1,0 +1,25 @@
+T031:Small distribution:修正要
+
+【問題】
+- npx tributaryコマンド（古いパッケージ）で "owner.toBuffer is not a function" エラーが発生
+- CLI実行時にPublicKeyオブジェクトのプロトタイプメソッドが失われる問題
+
+【解決策】
+- ConfigManagerでのPublicKey作成時の検証・復元処理追加
+- DistributionServiceでのRobustPublicKeyHandler統合
+- CLIとライブラリ間でのオブジェクト型安全性確保
+- ローカルビルド版では完全に修正済み
+
+【テスト結果】
+- 修正前（古いパッケージ）: Failed: 3, Successful: 0
+- 修正後（ローカルビルド）: Failed: 0, Successful: 3
+- 1トークンの3名への配布が正常完了
+
+【修正ファイル】
+- src/infrastructure/config/ConfigManager.ts: PublicKey検証ロジック追加
+- src/application/services/DistributionService.ts: 段階的PublicKey復元処理
+- src/presentation/cli/index.ts: CLI実行時のデバッグと検証
+
+【重要事項】
+グローバルパッケージと開発版の違いによる問題のため、
+本番環境では最新のローカルビルドを使用する必要がある。

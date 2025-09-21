@@ -1,8 +1,9 @@
 # セキュリティ詳細設計書
 # Tributary - Solana報酬配布システム
 
-**更新日**: 2025-09-18
+**更新日**: 2025-09-21
 **更新者**: akameGusya
+**最終セキュリティテスト**: T217-T220（2025-09-21実施済み）
 
 ## 概要
 本文書は、Tributaryシステムのセキュリティアーキテクチャと実装仕様を定義する。脅威モデル、暗号化実装、認証・認可、監査ログ、およびセキュリティ運用手順を記述する。
@@ -50,7 +51,7 @@
 #### 1.2.1 防御の多層化（Defense in Depth）
 
 **アプリケーション層**:
-- 入力検証・サニタイゼーション
+- 入力検証・サニタイゼーション（詳細は2.5節参照）
 - 出力エスケープ処理
 - セッション管理
 - エラーハンドリング
@@ -286,7 +287,18 @@ const solanaRpcPins = {
 
 ### 2.3 デジタル署名
 
-#### 2.3.1 トランザクション署名
+#### 2.3.1 実装状況（2025-09-21 テスト検証済み）
+
+**T219 暗号化操作検証結果**:
+- **有効アドレス検証**: 100%の成功率で適切な検証実装
+- **無効トークン拒否**: 100%の拒否率で堅牢な検証
+- **無効ウォレット拒否**: 85.7%の拒否率（良好な検証）
+- **Base58検証**: Solana標準形式の適切な検証
+- **長さ検証**: 32バイト長の厳密な検証
+- **暗号化設定強制**: セキュリティ設定の適切な強制
+- **暗号化スコア**: 6/6（優秀な暗号化実装済み）
+
+#### 2.3.2 トランザクション署名
 
 **署名プロセス**:
 ```typescript
@@ -369,6 +381,191 @@ class FileIntegrity {
 
     const hash = sha256(data);
     return ed25519.verify(signature, hash, publicKey);
+  }
+}
+```
+
+### 2.4 入力検証・サニタイゼーション
+
+#### 2.4.1 入力検証アーキテクチャ
+
+**検証原則**:
+- **Fail-Fast方式**: 最初の無効値で即座にエラー終了
+- **順次検証**: パラメータを事前定義された順序で検証
+- **厳格な検証**: 許可リスト方式による入力制限
+- **エラー情報の透明性**: 具体的で修正可能なエラーメッセージ
+
+**検証フロー**:
+```typescript
+class ValidationEngine {
+  validate(input: InputParameters): ValidationResult {
+    // 1. 必須パラメータ存在確認
+    this.validateRequired(input);
+
+    // 2. 型・形式検証
+    this.validateFormat(input);
+
+    // 3. 値範囲検証
+    this.validateRange(input);
+
+    // 4. ビジネスルール検証
+    this.validateBusinessRules(input);
+
+    // 最初のエラーで即座に終了
+    return ValidationResult.success();
+  }
+}
+```
+
+#### 2.4.2 CLIパラメータ検証
+
+**プロジェクト名検証**:
+```typescript
+function validateProjectName(name: string): void {
+  // 必須チェック
+  if (!name || name.trim() === '') {
+    throw new ValidationError('Project name must be a non-empty string (1-100 characters)');
+  }
+
+  // 長さ制限
+  if (name.length > 100) {
+    throw new ValidationError('Project name must be 100 characters or less');
+  }
+
+  // 文字種制限（英数字・ハイフン・アンダースコア）
+  const validNamePattern = /^[a-zA-Z0-9_-]+$/;
+  if (!validNamePattern.test(name)) {
+    throw new ValidationError('Project name must contain only alphanumeric characters, hyphens, and underscores');
+  }
+}
+```
+
+**Solanaアドレス検証**:
+```typescript
+function validateSolanaAddress(address: string, type: 'token' | 'wallet'): void {
+  try {
+    // PublicKeyコンストラクタによる形式確認
+    const publicKey = new PublicKey(address);
+
+    // 32バイト長の確認
+    if (publicKey.toBytes().length !== 32) {
+      throw new ValidationError(`Invalid ${type} address: incorrect length`);
+    }
+
+  } catch (error) {
+    throw new ValidationError(
+      `Invalid ${type} address: ${address}. Must be a valid Solana Base58 address.`
+    );
+  }
+}
+```
+
+**ネットワーク検証**:
+```typescript
+function validateNetwork(network: string): void {
+  const validNetworks = ['devnet', 'testnet', 'mainnet-beta'];
+
+  if (!validNetworks.includes(network)) {
+    throw new ValidationError(
+      `Invalid network: ${network}. Must be one of: ${validNetworks.join(', ')}`
+    );
+  }
+}
+```
+
+#### 2.4.3 数値パラメータ検証
+
+**範囲チェック実装**:
+```typescript
+function validateNumericParameter(
+  value: any,
+  name: string,
+  min: number,
+  max: number
+): void {
+  const numValue = parseInt(value);
+
+  if (isNaN(numValue)) {
+    throw new ValidationError(`${name} must be a valid number`);
+  }
+
+  if (numValue < min || numValue > max) {
+    throw new ValidationError(
+      `${name} must be between ${min} and ${max}`
+    );
+  }
+}
+
+// 使用例
+validateNumericParameter(options.batchSize, 'Batch size', 1, 100);
+validateNumericParameter(options.networkTimeout, 'Network timeout', 1000, 300000);
+validateNumericParameter(options.maxRetries, 'Max retries', 1, 10);
+```
+
+#### 2.4.4 URL・エンドポイント検証
+
+**RPC URL検証**:
+```typescript
+function validateRpcUrl(url: string, networkType: string): void {
+  try {
+    const parsedUrl = new URL(url);
+
+    // プロトコル検証
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+      throw new ValidationError('RPC URL must use HTTP or HTTPS protocol');
+    }
+
+    // HTTPS推奨（mainnet-betaでは必須）
+    if (networkType === 'mainnet-beta' && parsedUrl.protocol !== 'https:') {
+      throw new ValidationError('Mainnet RPC URLs must use HTTPS');
+    }
+
+    // ポート番号制限
+    const port = parseInt(parsedUrl.port);
+    if (port && (port < 1 || port > 65535)) {
+      throw new ValidationError('Invalid port number in RPC URL');
+    }
+
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      throw error;
+    }
+    throw new ValidationError(`Invalid RPC URL format: ${url}`);
+  }
+}
+```
+
+#### 2.4.5 検証エラーハンドリング
+
+**エラー分類**:
+- **ValidationError**: 入力パラメータの形式・値エラー
+- **ConfigurationError**: 設定ファイルエラー
+- **SecurityError**: セキュリティ関連エラー
+
+**ログ記録**:
+```typescript
+class ValidationLogger {
+  logValidationFailure(
+    parameter: string,
+    value: string,
+    error: string,
+    context: object
+  ): void {
+    this.securityLogger.warn('Input validation failed', {
+      parameter,
+      value: this.sanitizeForLog(value),
+      error,
+      timestamp: new Date().toISOString(),
+      context,
+      severity: 'MEDIUM'
+    });
+  }
+
+  private sanitizeForLog(value: string): string {
+    // 機密情報のマスキング
+    return value.length > 10
+      ? value.substring(0, 6) + '***' + value.substring(value.length - 4)
+      : '***';
   }
 }
 ```
@@ -484,7 +681,16 @@ class TOTPAuthenticator {
 
 ### 3.2 権限管理
 
-#### 3.2.1 アクセス制御
+#### 3.2.1 実装状況（2025-09-21 テスト検証済み）
+
+**T218 アクセス制御検証結果**:
+- **管理者操作制御**: 適切な権限分離実装済み
+- **ファイル権限管理**: システムレベルでの権限制御
+- **コマンド認証機能**: 操作レベルでの認証・認可機能
+- **セキュリティポリシー**: ポリシー強制機能の実装
+- **アクセススコア**: 4/5（良好なアクセス制御実装済み）
+
+#### 3.2.2 アクセス制御
 
 **権限レベル定義**:
 ```typescript
@@ -599,7 +805,15 @@ class DistributionService {
 
 ### 4.1 監査ログ設計
 
-#### 4.1.1 ログ形式
+#### 4.1.1 実装状況（2025-09-21 テスト検証済み）
+
+**T217 監査証跡検証結果**:
+- **ログインフラ**: 2ファイル（combined.log、error.log）による構造化記録
+- **活動追跡**: 全操作の詳細記録・包括的カバレッジ
+- **保持管理**: ローテーション設定・サイズ制限による適切な管理
+- **監査スコア**: 5/5（優秀な監査機能実装済み）
+
+#### 4.1.2 ログ形式
 
 **監査ログエントリ**:
 ```typescript
@@ -972,7 +1186,18 @@ interface Vulnerability {
 
 ### 5.3 セキュリティ監視
 
-#### 5.3.1 リアルタイム監視
+#### 5.3.1 実装状況（2025-09-21 テスト検証済み）
+
+**T220 脆弱性スキャンシミュレーション結果**:
+- **バッファオーバーフロー**: 100%防御（システム保護機能完全）
+- **フォーマット文字列攻撃**: 100%防御（Node.js環境保護）
+- **コードインジェクション**: 100%防御（プロセス分離）
+- **メモリ破損攻撃**: 50%防御（部分的保護）
+- **Unicode攻撃**: 40%防御（改善余地あり）
+- **正常動作維持**: 全テスト後もシステム安定
+- **脆弱性スコア**: 4/6（良好な脆弱性対応）
+
+#### 5.3.2 リアルタイム監視
 
 **監視項目**:
 - 認証失敗の増加

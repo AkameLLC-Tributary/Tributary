@@ -1,6 +1,6 @@
 {
   "name": "@akamellc/tributary",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Solana token distribution system",
   "main": "dist/index.js",
   "bin": {
@@ -49,11 +49,13 @@
   "dependencies": {
     "@solana/spl-token": "^0.4.8",
     "@solana/web3.js": "^1.95.0",
+    "@types/js-yaml": "^4.0.9",
     "chalk": "^4.1.2",
     "cli-progress": "^3.12.0",
     "commander": "^12.1.0",
     "dotenv": "^16.4.5",
     "inquirer": "^8.2.6",
+    "js-yaml": "^4.1.0",
     "toml": "^3.0.0",
     "winston": "^3.14.2",
     "zod": "^3.23.8"
@@ -83,7 +85,8 @@
   },
   "files": [
     "dist/",
-    "README.md"
+    "README.md",
+    "tributary-parameters.example.json"
   ],
   "publishConfig": {
     "access": "public"

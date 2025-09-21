@@ -1,0 +1,30 @@
+project:
+  name: TestProject
+  created: '2025-09-20T00:40:28.502Z'
+  network: devnet
+token:
+  base_token: So11111111111111111111111111111111111111112
+  admin_wallet: 7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU
+distribution:
+  auto_distribute: false
+  minimum_balance: 0
+  batch_size: 25
+security:
+  key_encryption: true
+  backup_enabled: true
+  audit_log: true
+network:
+  rpc_urls:
+    devnet: https://api.devnet.solana.com
+    testnet: https://api.testnet.solana.com
+    mainnet-beta: https://api.mainnet-beta.solana.com
+  timeout: 30000
+  max_retries: 3
+  retry_delay: 1000
+logging:
+  level: info
+  log_dir: ./logs
+  enable_console: true
+  enable_file: true
+  max_files: 14
+  max_size: 20m

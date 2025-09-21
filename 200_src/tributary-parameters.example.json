@@ -1,0 +1,150 @@
+{
+  "// Comment": "Tributary CLI Parameter Configuration",
+  "// Description": "Copy this file to your project directory and rename to 'tributary-parameters.json' to override default settings",
+  "// Usage": "These parameters can also be set via environment variables with TRIBUTARY_ prefix",
+
+  "network": {
+    "// defaultNetwork": "Default network for new projects (devnet/testnet/mainnet-beta)",
+    "defaultNetwork": "devnet",
+
+    "// timeout": "Network request timeout in milliseconds",
+    "timeout": 30000,
+
+    "// maxRetries": "Maximum number of retry attempts for failed requests",
+    "maxRetries": 3,
+
+    "// retryDelay": "Delay between retry attempts in milliseconds",
+    "retryDelay": 1000,
+
+    "// confirmationTimeout": "Transaction confirmation timeout in milliseconds",
+    "confirmationTimeout": 60000,
+
+    "// commitment": "Transaction commitment level (processed/confirmed/finalized)",
+    "commitment": "confirmed"
+  },
+
+  "rpc": {
+    "// endpoints": "Default RPC endpoints for each network",
+    "endpoints": {
+      "devnet": "https://api.devnet.solana.com",
+      "testnet": "https://api.testnet.solana.com",
+      "mainnet-beta": "https://api.mainnet-beta.solana.com"
+    },
+
+    "// fallbackEndpoints": "Backup RPC endpoints in case primary fails",
+    "fallbackEndpoints": {
+      "devnet": [
+        "https://rpc.ankr.com/solana_devnet",
+        "https://devnet.helius-rpc.com"
+      ],
+      "testnet": [
+        "https://rpc.ankr.com/solana_testnet"
+      ],
+      "mainnet-beta": [
+        "https://rpc.ankr.com/solana",
+        "https://mainnet.helius-rpc.com"
+      ]
+    }
+  },
+
+  "distribution": {
+    "// defaultBatchSize": "Default number of recipients per batch",
+    "defaultBatchSize": 10,
+
+    "// maxBatchSize": "Maximum allowed batch size",
+    "maxBatchSize": 50,
+
+    "// batchDelayMs": "Delay between batches in milliseconds",
+    "batchDelayMs": 100,
+
+    "// estimatedGasPerTransaction": "Estimated SOL cost per transaction",
+    "estimatedGasPerTransaction": 0.000005,
+
+    "// estimatedTimePerBatchSeconds": "Estimated processing time per batch",
+    "estimatedTimePerBatchSeconds": 2,
+
+    "riskThresholds": {
+      "// largeAmountThreshold": "Distribution amount that triggers large amount warning",
+      "largeAmountThreshold": 100000,
+
+      "// largeRecipientCountThreshold": "Recipient count that triggers performance warning",
+      "largeRecipientCountThreshold": 1000,
+
+      "// smallAmountThreshold": "Individual amount that triggers small amount warning",
+      "smallAmountThreshold": 0.001
+    }
+  },
+
+  "token": {
+    "// defaultDecimals": "Default decimal places for tokens",
+    "defaultDecimals": 9,
+
+    "// fallbackDecimals": "Fallback decimal places if detection fails",
+    "fallbackDecimals": 6,
+
+    "// minimumBalance": "Minimum balance required for distribution",
+    "minimumBalance": 0
+  },
+
+  "cache": {
+    "// defaultTtlSeconds": "Default cache time-to-live in seconds",
+    "defaultTtlSeconds": 3600,
+
+    "// walletCacheTtlSeconds": "Wallet data cache duration",
+    "walletCacheTtlSeconds": 1800,
+
+    "// configCacheTtlSeconds": "Configuration cache duration",
+    "configCacheTtlSeconds": 300
+  },
+
+  "logging": {
+    "// defaultLevel": "Default log level (error/warn/info/debug)",
+    "defaultLevel": "info",
+
+    "// defaultDir": "Default log directory",
+    "defaultDir": "./logs",
+
+    "// enableConsole": "Enable console logging",
+    "enableConsole": true,
+
+    "// enableFile": "Enable file logging",
+    "enableFile": true,
+
+    "// maxFiles": "Maximum number of log files to keep",
+    "maxFiles": 14,
+
+    "// maxFileSize": "Maximum size per log file",
+    "maxFileSize": "20m"
+  },
+
+  "security": {
+    "// defaultKeyEncryption": "Enable key encryption by default",
+    "defaultKeyEncryption": true,
+
+    "// defaultBackupEnabled": "Enable backup by default",
+    "defaultBackupEnabled": true,
+
+    "// defaultAuditLog": "Enable audit logging by default",
+    "defaultAuditLog": true
+  },
+
+  "export": {
+    "// defaultFormat": "Default export format (json/csv)",
+    "defaultFormat": "json",
+
+    "// fileNamePattern": "File naming pattern for exports",
+    "// Available variables: {type}, {timestamp}, {format}",
+    "fileNamePattern": "{type}_{timestamp}.{format}"
+  },
+
+  "validation": {
+    "// maxRecipientsPerDistribution": "Maximum recipients allowed per distribution",
+    "maxRecipientsPerDistribution": 10000,
+
+    "// minBalanceForDistribution": "Minimum balance required to participate",
+    "minBalanceForDistribution": 0.001,
+
+    "// walletValidationTimeout": "Timeout for wallet validation in milliseconds",
+    "walletValidationTimeout": 5000
+  }
+}

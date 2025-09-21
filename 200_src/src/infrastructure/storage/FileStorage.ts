@@ -35,6 +35,23 @@ export class FileStorage {
     }
   }
 
+  public async writeText(filePath: string, content: string): Promise<void> {
+    try {
+      const fullPath = path.resolve(this.baseDir, filePath);
+
+      if (this.createDirs) {
+        await this.ensureDirectoryExists(path.dirname(fullPath));
+      }
+
+      await fs.writeFile(fullPath, content, 'utf8');
+    } catch (error) {
+      throw new ResourceError(
+        `Failed to write text file: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { filePath, error: String(error) }
+      );
+    }
+  }
+
   public async readJson<T>(filePath: string): Promise<T> {
     try {
       const fullPath = path.resolve(this.baseDir, filePath);
@@ -175,5 +192,43 @@ export class FileStorage {
 
   public getFullPath(filePath: string): string {
     return path.resolve(this.baseDir, filePath);
+  }
+
+  public async cleanupTempFiles(patterns: string[] = ['*.tmp', '*.temp', '*.log']): Promise<number> {
+    let cleanedCount = 0;
+
+    try {
+      const baseFiles = await this.list('');
+
+      for (const pattern of patterns) {
+        const regex = this.createPatternRegex(pattern);
+        const matchingFiles = baseFiles.filter(file => regex.test(file));
+
+        for (const file of matchingFiles) {
+          try {
+            await this.delete(file);
+            cleanedCount++;
+          } catch (error) {
+            // Continue cleaning other files even if one fails
+            console.warn(`Failed to clean temp file ${file}:`, error);
+          }
+        }
+      }
+
+      return cleanedCount;
+    } catch (error) {
+      throw new ResourceError(
+        `Failed to cleanup temp files: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { patterns, error: String(error) }
+      );
+    }
+  }
+
+  private createPatternRegex(pattern: string): RegExp {
+    const escapedPattern = pattern
+      .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+      .replace(/\*/g, '.*')
+      .replace(/\?/g, '.');
+    return new RegExp(`^${escapedPattern}$`, 'i');
   }
 }

@@ -3,9 +3,10 @@ import {
   PublicKey,
   GetProgramAccountsFilter
 } from '@solana/web3.js';
-import { TOKEN_PROGRAM_ID, AccountLayout } from '@solana/spl-token';
+import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, AccountLayout } from '@solana/spl-token';
 import { NetworkError, TimeoutError } from '../../domain/errors';
 import { TokenHolder, NetworkType } from '../../domain/models';
+import { getParameters } from '../../config/parameters';
 
 export interface SolanaRpcClientOptions {
   network: NetworkType;
@@ -22,24 +23,28 @@ export class SolanaRpcClient {
   private readonly retryDelay: number;
 
   constructor(options: SolanaRpcClientOptions) {
+    const params = getParameters();
     const rpcUrl = options.rpcUrl || this.getDefaultRpcUrl(options.network);
+
     this.connection = new Connection(rpcUrl, {
-      commitment: 'confirmed',
-      confirmTransactionInitialTimeout: options.timeout || 60000
+      commitment: params.network.commitment,
+      confirmTransactionInitialTimeout: options.timeout || params.network.confirmationTimeout
     });
-    this.timeout = options.timeout || 30000;
-    this.maxRetries = options.maxRetries || 3;
-    this.retryDelay = options.retryDelay || 1000;
+    this.timeout = options.timeout || params.network.timeout;
+    this.maxRetries = options.maxRetries || params.network.maxRetries;
+    this.retryDelay = options.retryDelay || params.network.retryDelay;
   }
 
   private getDefaultRpcUrl(network: NetworkType): string {
+    const params = getParameters();
+
     switch (network) {
       case 'devnet':
-        return 'https://api.devnet.solana.com';
+        return params.rpc.endpoints.devnet;
       case 'testnet':
-        return 'https://api.testnet.solana.com';
+        return params.rpc.endpoints.testnet;
       case 'mainnet-beta':
-        return 'https://api.mainnet-beta.solana.com';
+        return params.rpc.endpoints['mainnet-beta'];
       default:
         throw new NetworkError(`Unknown network: ${network}`);
     }
@@ -69,6 +74,15 @@ export class SolanaRpcClient {
     tokenMintAddress: PublicKey,
     threshold: number
   ): Promise<TokenHolder[]> {
+    // Try to detect which token program this token uses
+    const tokenProgram = await this.detectTokenProgram(tokenMintAddress);
+
+    if (tokenProgram.equals(TOKEN_2022_PROGRAM_ID)) {
+      // Use alternative method for Token 2022
+      return this.fetchToken2022Holders(tokenMintAddress, threshold);
+    }
+
+    // Standard SPL Token method
     const filters: GetProgramAccountsFilter[] = [
       {
         dataSize: AccountLayout.span
@@ -88,10 +102,13 @@ export class SolanaRpcClient {
 
     const holders: TokenHolder[] = [];
 
+    // Get actual token decimals instead of assuming 9
+    const decimals = await this.getTokenDecimals(tokenMintAddress);
+
     for (const account of accounts) {
       try {
         const accountData = AccountLayout.decode(account.account.data);
-        const balance = Number(accountData.amount) / Math.pow(10, 9); // Assuming 9 decimals
+        const balance = Number(accountData.amount) / Math.pow(10, decimals);
 
         if (balance >= threshold) {
           holders.push({
@@ -156,7 +173,10 @@ export class SolanaRpcClient {
         this.connection.getAccountInfo(tokenAddress),
         this.timeout
       );
-      return accountInfo !== null && accountInfo.owner.equals(TOKEN_PROGRAM_ID);
+      return accountInfo !== null && (
+        accountInfo.owner.equals(TOKEN_PROGRAM_ID) ||
+        accountInfo.owner.equals(TOKEN_2022_PROGRAM_ID)
+      );
     } catch {
       return false;
     }
@@ -220,5 +240,138 @@ export class SolanaRpcClient {
 
   private delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  private async detectTokenProgram(tokenMintAddress: PublicKey): Promise<PublicKey> {
+    try {
+      const accountInfo = await this.withTimeout(
+        this.connection.getAccountInfo(tokenMintAddress),
+        this.timeout
+      );
+
+      if (accountInfo?.owner.equals(TOKEN_2022_PROGRAM_ID)) {
+        return TOKEN_2022_PROGRAM_ID;
+      }
+
+      return TOKEN_PROGRAM_ID;
+    } catch {
+      return TOKEN_PROGRAM_ID;
+    }
+  }
+
+  private async fetchToken2022Holders(
+    tokenMintAddress: PublicKey,
+    threshold: number
+  ): Promise<TokenHolder[]> {
+    try {
+      // Use getTokenLargestAccounts for Token 2022 since getProgramAccounts is excluded from secondary indexes
+      const largestAccounts = await this.withTimeout(
+        this.connection.getTokenLargestAccounts(tokenMintAddress),
+        this.timeout
+      );
+
+      const holders: TokenHolder[] = [];
+      const decimals = await this.getTokenDecimals(tokenMintAddress);
+
+      for (const account of largestAccounts.value) {
+        const balance = Number(account.amount) / Math.pow(10, decimals);
+
+        if (balance >= threshold) {
+          // Get account info to find the owner
+          const accountInfo = await this.withTimeout(
+            this.connection.getAccountInfo(account.address),
+            this.timeout
+          );
+
+          if (accountInfo) {
+            try {
+              const accountData = AccountLayout.decode(accountInfo.data);
+              holders.push({
+                address: new PublicKey(accountData.owner),
+                balance,
+                percentage: 0 // Will be calculated later
+              });
+            } catch (error) {
+              console.warn(`Failed to decode Token 2022 account ${account.address.toString()}: ${error}`);
+            }
+          }
+        }
+      }
+
+      // Calculate percentages
+      const totalSupply = holders.reduce((sum, holder) => sum + holder.balance, 0);
+      holders.forEach(holder => {
+        holder.percentage = totalSupply > 0 ? (holder.balance / totalSupply) * 100 : 0;
+      });
+
+      return holders.sort((a, b) => b.balance - a.balance);
+    } catch (error) {
+      console.warn(`Token 2022 holder fetch failed, falling back to transaction history method: ${error}`);
+      return this.fetchToken2022HoldersByTransactions(tokenMintAddress, threshold);
+    }
+  }
+
+  private async fetchToken2022HoldersByTransactions(
+    tokenMintAddress: PublicKey,
+    threshold: number
+  ): Promise<TokenHolder[]> {
+    try {
+      // Get recent signatures for the token mint
+      const signatures = await this.withTimeout(
+        this.connection.getSignaturesForAddress(tokenMintAddress, { limit: 1000 }),
+        this.timeout
+      );
+
+      const holderMap = new Map<string, number>();
+      const decimals = await this.getTokenDecimals(tokenMintAddress);
+
+      // Process transactions to find token transfers
+      for (const sigInfo of signatures) {
+        try {
+          const transaction = await this.withTimeout(
+            this.connection.getTransaction(sigInfo.signature, {
+              maxSupportedTransactionVersion: 0
+            }),
+            this.timeout
+          );
+
+          if (transaction?.meta?.postTokenBalances) {
+            for (const balance of transaction.meta.postTokenBalances) {
+              if (balance.mint === tokenMintAddress.toString() && balance.owner) {
+                const amount = Number(balance.uiTokenAmount.amount) / Math.pow(10, decimals);
+                if (amount > 0) {
+                  holderMap.set(balance.owner, Math.max(holderMap.get(balance.owner) || 0, amount));
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.warn(`Failed to process transaction ${sigInfo.signature}: ${error}`);
+        }
+      }
+
+      // Convert to TokenHolder array
+      const holders: TokenHolder[] = [];
+      for (const [ownerAddress, balance] of holderMap.entries()) {
+        if (balance >= threshold) {
+          holders.push({
+            address: new PublicKey(ownerAddress),
+            balance,
+            percentage: 0 // Will be calculated later
+          });
+        }
+      }
+
+      // Calculate percentages
+      const totalSupply = holders.reduce((sum, holder) => sum + holder.balance, 0);
+      holders.forEach(holder => {
+        holder.percentage = totalSupply > 0 ? (holder.balance / totalSupply) * 100 : 0;
+      });
+
+      return holders.sort((a, b) => b.balance - a.balance);
+    } catch (error) {
+      console.warn(`Token 2022 transaction-based holder fetch failed: ${error}`);
+      return [];
+    }
   }
 }

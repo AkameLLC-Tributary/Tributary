@@ -74,10 +74,40 @@ tributary init --name "UpdatedProject" --force
 ```
 
 **検証処理**:
-- プロジェクト名の妥当性（1-100文字、英数字・ハイフン・アンダースコア）
-- トークンアドレスのSolana Base58形式検証
-- 管理者ウォレットアドレスの形式検証
-- ネットワーク指定値の妥当性確認
+
+**検証動作**: Fail-Fast方式
+- 検証は順次実行され、最初の無効値で即座にエラー終了
+- 単一パラメータが無効でも、複数パラメータが無効でも同様の動作
+- 後続パラメータの検証は実行されない
+
+**検証項目**:
+1. **プロジェクト名検証**
+   - 必須チェック: 空文字列・null値の検出
+   - 長さ制限: 1-100文字
+   - 文字種制限: 英数字・ハイフン・アンダースコア
+
+2. **トークンアドレス検証**
+   - Solana Base58形式の妥当性
+   - PublicKey()コンストラクタによる形式確認
+   - 32バイト長の検証
+
+3. **管理者ウォレットアドレス検証**
+   - Solana Base58形式の妥当性
+   - PublicKey()コンストラクタによる形式確認
+   - 管理者権限の存在確認（設定により）
+
+4. **ネットワーク指定値検証**
+   - 有効値: devnet, testnet, mainnet-beta
+   - 大文字小文字の区別
+   - 未知ネットワーク名の拒否
+
+**エラーメッセージ例**:
+```
+❌ ValidationError: Project name must be a non-empty string (1-100 characters)
+❌ ValidationError: Invalid base token address: invalid_token. Must be a valid Solana Base58 address.
+❌ ValidationError: Invalid admin wallet address: invalid_admin. Must be a valid Solana Base58 address.
+❌ ValidationError: Invalid network: invalid_network. Must be one of: devnet, testnet, mainnet-beta
+```
 
 **出力形式**:
 ```

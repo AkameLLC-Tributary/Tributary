@@ -1,0 +1,68 @@
+{
+  "name": "tributary-cli-security-tests",
+  "version": "1.0.0",
+  "description": "Comprehensive security test suite for Tributary CLI application covering input validation, injection prevention, access control, and vulnerability scanning",
+  "main": "run-all-security-tests.js",
+  "scripts": {
+    "test": "node run-all-security-tests.js",
+    "test:input-validation": "node input-validation/t210-input-sanitization-test.js && node input-validation/t214-environment-validation-test.js",
+    "test:injection-prevention": "node injection-prevention/t211-sql-injection-test.js && node injection-prevention/t212-command-injection-test.js && node injection-prevention/t213-path-traversal-test.js",
+    "test:access-control": "node access-control/t215-config-tampering-test.js && node access-control/t216-data-exposure-test.js && node access-control/t217-audit-trail-test.js && node access-control/t218-access-control-test.js && node access-control/t219-cryptographic-validation-test.js",
+    "test:vulnerability-scanning": "node vulnerability-scanning/t220-vulnerability-scanning-test.js",
+    "test:t210": "node input-validation/t210-input-sanitization-test.js",
+    "test:t211": "node injection-prevention/t211-sql-injection-test.js",
+    "test:t212": "node injection-prevention/t212-command-injection-test.js",
+    "test:t213": "node injection-prevention/t213-path-traversal-test.js",
+    "test:t214": "node input-validation/t214-environment-validation-test.js",
+    "test:t215": "node access-control/t215-config-tampering-test.js",
+    "test:t216": "node access-control/t216-data-exposure-test.js",
+    "test:t217": "node access-control/t217-audit-trail-test.js",
+    "test:t218": "node access-control/t218-access-control-test.js",
+    "test:t219": "node access-control/t219-cryptographic-validation-test.js",
+    "test:t220": "node vulnerability-scanning/t220-vulnerability-scanning-test.js"
+  },
+  "keywords": [
+    "security",
+    "testing",
+    "cli",
+    "vulnerability",
+    "penetration-testing",
+    "injection-prevention",
+    "access-control",
+    "input-validation",
+    "cryptographic-validation",
+    "audit-trail",
+    "solana",
+    "blockchain",
+    "tributary"
+  ],
+  "author": "Tributary Security Testing Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=12.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/tributary-cli-security-tests.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/tributary-cli-security-tests/issues"
+  },
+  "homepage": "https://github.com/your-org/tributary-cli-security-tests#readme",
+  "dependencies": {},
+  "devDependencies": {},
+  "files": [
+    "input-validation/",
+    "injection-prevention/",
+    "access-control/",
+    "vulnerability-scanning/",
+    "run-all-security-tests.js",
+    "README.md"
+  ],
+  "directories": {
+    "test": "."
+  },
+  "config": {
+    "test-timeout": "30000"
+  }
+}

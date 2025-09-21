@@ -6,7 +6,10 @@ import { PublicKey } from '@solana/web3.js';
 import { ProjectConfig, NetworkType, LogLevel } from '../../domain/models';
 import { ConfigurationError, ValidationError } from '../../domain/errors';
 import { Logger, createLogger } from '../logging/Logger';
+import { getParameters } from '../../config/parameters';
+import { FileStorage } from '../storage/FileStorage';
 
+// Create schema without defaults - we'll apply defaults after validation
 const ProjectConfigSchema = z.object({
   project: z.object({
     name: z.string().min(1).max(100),
@@ -34,41 +37,96 @@ const ProjectConfigSchema = z.object({
   distribution: z.object({
     schedule: z.enum(['manual', 'weekly', 'monthly']).optional(),
     reward_token: z.string().optional(),
-    auto_distribute: z.boolean().default(false),
-    minimum_balance: z.number().min(0).default(0),
-    batch_size: z.number().int().min(1).max(100).default(10)
+    auto_distribute: z.boolean().optional(),
+    minimum_balance: z.number().min(0).optional(),
+    batch_size: z.number().int().min(1).max(100).optional()
   }),
   security: z.object({
-    key_encryption: z.boolean().default(true),
-    backup_enabled: z.boolean().default(true),
-    audit_log: z.boolean().default(true)
+    key_encryption: z.boolean().optional(),
+    backup_enabled: z.boolean().optional(),
+    audit_log: z.boolean().optional()
   }),
   network: z.object({
-    rpc_url: z.string().url().optional(),
-    timeout: z.number().int().min(1000).max(300000).default(30000),
-    max_retries: z.number().int().min(1).max(10).default(3),
-    retry_delay: z.number().int().min(100).max(10000).default(1000)
+    rpc_urls: z.object({
+      devnet: z.string().url().optional(),
+      testnet: z.string().url().optional(),
+      'mainnet-beta': z.string().url().optional()
+    }).optional(),
+    timeout: z.number().int().min(1000).max(300000).optional(),
+    max_retries: z.number().int().min(1).max(10).optional(),
+    retry_delay: z.number().int().min(100).max(10000).optional()
   }).optional(),
   logging: z.object({
-    level: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
-    log_dir: z.string().default('./logs'),
-    enable_console: z.boolean().default(true),
-    enable_file: z.boolean().default(true),
-    max_files: z.number().int().min(1).max(100).default(14),
-    max_size: z.string().default('20m')
+    level: z.enum(['debug', 'info', 'warn', 'error']).optional(),
+    log_dir: z.string().optional(),
+    enable_console: z.boolean().optional(),
+    enable_file: z.boolean().optional(),
+    max_files: z.number().int().min(1).max(100).optional(),
+    max_size: z.string().optional()
   }).optional()
 });
 
 export type ConfigData = z.infer<typeof ProjectConfigSchema>;
 
+/**
+ * Apply parameter defaults to configuration data
+ * This ensures proper priority: User Input > Environment > Config File > Defaults
+ */
+function applyParameterDefaults(rawConfig: any): ConfigData {
+  const params = getParameters();
+
+  // Create a complete config with defaults
+  const configWithDefaults = {
+    project: {
+      name: rawConfig.project?.name,
+      created: rawConfig.project?.created,
+      network: rawConfig.project?.network // This is always required from user
+    },
+    token: {
+      base_token: rawConfig.token?.base_token,
+      admin_wallet: rawConfig.token?.admin_wallet
+    },
+    distribution: {
+      schedule: rawConfig.distribution?.schedule,
+      reward_token: rawConfig.distribution?.reward_token,
+      auto_distribute: rawConfig.distribution?.auto_distribute ?? false,
+      minimum_balance: rawConfig.distribution?.minimum_balance ?? params.token.minimumBalance,
+      batch_size: rawConfig.distribution?.batch_size ?? params.distribution.defaultBatchSize
+    },
+    security: {
+      key_encryption: rawConfig.security?.key_encryption ?? params.security.defaultKeyEncryption,
+      backup_enabled: rawConfig.security?.backup_enabled ?? params.security.defaultBackupEnabled,
+      audit_log: rawConfig.security?.audit_log ?? params.security.defaultAuditLog
+    },
+    network: {
+      rpc_urls: rawConfig.network?.rpc_urls,
+      timeout: rawConfig.network?.timeout ?? params.network.timeout,
+      max_retries: rawConfig.network?.max_retries ?? params.network.maxRetries,
+      retry_delay: rawConfig.network?.retry_delay ?? params.network.retryDelay
+    },
+    logging: {
+      level: rawConfig.logging?.level ?? params.logging.defaultLevel,
+      log_dir: rawConfig.logging?.log_dir ?? params.logging.defaultDir,
+      enable_console: rawConfig.logging?.enable_console !== undefined ? rawConfig.logging.enable_console : params.logging.enableConsole,
+      enable_file: rawConfig.logging?.enable_file !== undefined ? rawConfig.logging.enable_file : params.logging.enableFile,
+      max_files: rawConfig.logging?.max_files !== undefined ? rawConfig.logging.max_files : params.logging.maxFiles,
+      max_size: rawConfig.logging?.max_size ?? params.logging.maxFileSize
+    }
+  };
+
+  return configWithDefaults as ConfigData;
+}
+
 export class ConfigManager {
   private config: ConfigData | null = null;
   private configPath: string;
   private readonly logger: Logger;
+  private readonly fileStorage: FileStorage;
 
   constructor(configPath = './tributary.toml') {
     this.configPath = path.resolve(configPath);
     this.logger = createLogger('ConfigManager');
+    this.fileStorage = new FileStorage({ baseDir: path.dirname(configPath) });
   }
 
   public async loadConfig(): Promise<ConfigData> {
@@ -77,7 +135,11 @@ export class ConfigManager {
         const configContent = await fs.readFile(this.configPath, 'utf-8');
         const rawConfig = toml.parse(configContent);
 
-        this.config = ProjectConfigSchema.parse(rawConfig);
+        // First validate the raw config structure
+        const validatedRawConfig = ProjectConfigSchema.parse(rawConfig);
+
+        // Then apply parameter defaults with proper priority
+        this.config = applyParameterDefaults(validatedRawConfig);
 
         this.logger.info('Configuration loaded successfully', {
           configPath: this.configPath,
@@ -116,6 +178,7 @@ export class ConfigManager {
   public async saveConfig(config: ConfigData): Promise<void> {
     return this.logger.logOperation('saveConfig', async () => {
       try {
+        // Validate config structure before saving
         ProjectConfigSchema.parse(config);
 
         const configDir = path.dirname(this.configPath);
@@ -156,6 +219,18 @@ export class ConfigManager {
     adminWallet: string;
     network: NetworkType;
     force?: boolean;
+    customRpcUrls?: {
+      devnet?: string;
+      testnet?: string;
+      'mainnet-beta'?: string;
+    };
+    // Allow users to override any parameter during initialization
+    overrides?: {
+      distribution?: Partial<ConfigData['distribution']>;
+      security?: Partial<ConfigData['security']>;
+      network?: Partial<ConfigData['network']>;
+      logging?: Partial<ConfigData['logging']>;
+    };
   }): Promise<ConfigData> {
     return this.logger.logOperation('initializeProject', async () => {
       if (!options.force && await this.configExists()) {
@@ -165,27 +240,54 @@ export class ConfigManager {
         );
       }
 
-      const config: ConfigData = {
+      const params = getParameters();
+
+      // Create base config with user's explicit input taking highest priority
+      const baseConfig = {
         project: {
-          name: options.name,
+          name: options.name,          // USER INPUT - highest priority
           created: new Date().toISOString(),
-          network: options.network
+          network: options.network     // USER INPUT - highest priority
         },
         token: {
-          base_token: options.baseToken,
-          admin_wallet: options.adminWallet
+          base_token: options.baseToken,    // USER INPUT - highest priority
+          admin_wallet: options.adminWallet // USER INPUT - highest priority
         },
         distribution: {
           auto_distribute: false,
-          minimum_balance: 0,
-          batch_size: 10
+          minimum_balance: params.token.minimumBalance,
+          batch_size: params.distribution.defaultBatchSize,
+          // Apply user overrides if provided
+          ...options.overrides?.distribution
         },
         security: {
-          key_encryption: true,
-          backup_enabled: true,
-          audit_log: true
+          key_encryption: params.security.defaultKeyEncryption,
+          backup_enabled: params.security.defaultBackupEnabled,
+          audit_log: params.security.defaultAuditLog,
+          // Apply user overrides if provided
+          ...options.overrides?.security
+        },
+        network: {
+          timeout: params.network.timeout,
+          max_retries: params.network.maxRetries,
+          retry_delay: params.network.retryDelay,
+          rpc_urls: this.getDefaultRpcUrls(options.customRpcUrls),
+          // Apply user overrides if provided
+          ...options.overrides?.network
+        },
+        logging: {
+          level: params.logging.defaultLevel,
+          log_dir: params.logging.defaultDir,
+          enable_console: params.logging.enableConsole,
+          enable_file: params.logging.enableFile,
+          max_files: params.logging.maxFiles,
+          max_size: params.logging.maxFileSize,
+          // Apply user overrides if provided
+          ...options.overrides?.logging
         }
       };
+
+      const config: ConfigData = baseConfig as ConfigData;
 
       await this.saveConfig(config);
 
@@ -212,48 +314,79 @@ export class ConfigManager {
   public getProjectConfig(): ProjectConfig {
     const config = this.getConfig();
 
+    console.log('🔍 ConfigManager.getProjectConfig() - Creating PublicKeys');
+    console.log('config.token.base_token raw:', config.token.base_token);
+    console.log('config.token.base_token type:', typeof config.token.base_token);
+
+    const baseTokenPK = new PublicKey(config.token.base_token);
+    console.log('🔍 baseToken PublicKey created');
+    console.log('baseTokenPK type:', typeof baseTokenPK);
+    console.log('baseTokenPK constructor:', baseTokenPK.constructor.name);
+    console.log('baseTokenPK has toBuffer:', !!baseTokenPK.toBuffer);
+    console.log('baseTokenPK toString():', baseTokenPK.toString());
+
+    if (baseTokenPK.toBuffer) {
+      try {
+        const buffer = baseTokenPK.toBuffer();
+        console.log('🔍 baseTokenPK.toBuffer() SUCCESS, length:', buffer.length);
+      } catch (e) {
+        console.log('🔍 baseTokenPK.toBuffer() ERROR:', e instanceof Error ? e.message : String(e));
+      }
+    }
+
+    const adminWalletPK = new PublicKey(config.token.admin_wallet);
+    console.log('🔍 adminWallet PublicKey created');
+
     return {
       name: config.project.name,
       network: config.project.network,
-      baseToken: new PublicKey(config.token.base_token),
-      adminWallet: new PublicKey(config.token.admin_wallet),
+      baseToken: baseTokenPK,
+      adminWallet: adminWalletPK,
       distributionSettings: {
         schedule: config.distribution.schedule,
         rewardToken: config.distribution.reward_token
           ? new PublicKey(config.distribution.reward_token)
           : undefined,
-        autoDistribute: config.distribution.auto_distribute,
-        minimumBalance: config.distribution.minimum_balance,
-        batchSize: config.distribution.batch_size
+        autoDistribute: config.distribution.auto_distribute ?? false,
+        minimumBalance: config.distribution.minimum_balance ?? 0,
+        batchSize: config.distribution.batch_size ?? 10
       },
       securitySettings: {
-        keyEncryption: config.security.key_encryption,
-        backupEnabled: config.security.backup_enabled,
-        auditLog: config.security.audit_log
+        keyEncryption: config.security.key_encryption ?? false,
+        backupEnabled: config.security.backup_enabled ?? false,
+        auditLog: config.security.audit_log ?? false
       }
     };
   }
 
   public getNetworkConfig() {
     const config = this.getConfig();
+    const params = getParameters();
+    const currentNetwork = config.project.network;
+
+    // Get network-specific RPC URL or fall back to default
+    const networkRpcUrl = config.network?.rpc_urls?.[currentNetwork];
+
     return {
-      network: config.project.network,
-      rpcUrl: config.network?.rpc_url,
-      timeout: config.network?.timeout || 30000,
-      maxRetries: config.network?.max_retries || 3,
-      retryDelay: config.network?.retry_delay || 1000
+      network: currentNetwork,
+      rpcUrl: networkRpcUrl,
+      timeout: config.network?.timeout || params.network.timeout,
+      maxRetries: config.network?.max_retries || params.network.maxRetries,
+      retryDelay: config.network?.retry_delay || params.network.retryDelay
     };
   }
 
   public getLoggingConfig() {
     const config = this.getConfig();
+    const params = getParameters();
+
     return {
-      level: config.logging?.level || 'info' as LogLevel,
-      logDir: config.logging?.log_dir || './logs',
-      enableConsole: config.logging?.enable_console ?? true,
-      enableFile: config.logging?.enable_file ?? true,
-      maxFiles: config.logging?.max_files || 14,
-      maxSize: config.logging?.max_size || '20m'
+      level: config.logging?.level || params.logging.defaultLevel as LogLevel,
+      logDir: config.logging?.log_dir || params.logging.defaultDir,
+      enableConsole: config.logging?.enable_console ?? params.logging.enableConsole,
+      enableFile: config.logging?.enable_file ?? params.logging.enableFile,
+      maxFiles: config.logging?.max_files || params.logging.maxFiles,
+      maxSize: config.logging?.max_size || params.logging.maxFileSize
     };
   }
 
@@ -388,5 +521,63 @@ export class ConfigManager {
     }
 
     return result;
+  }
+
+  private getDefaultRpcUrls(customUrls?: {
+    devnet?: string;
+    testnet?: string;
+    'mainnet-beta'?: string;
+  }): { [key: string]: string } {
+    const params = getParameters();
+
+    // Priority: CLI options > environment variables > parameters > default public RPCs
+    const defaultUrls = {
+      devnet: customUrls?.devnet || process.env.TRIBUTARY_DEVNET_RPC || params.rpc.endpoints.devnet,
+      testnet: customUrls?.testnet || process.env.TRIBUTARY_TESTNET_RPC || params.rpc.endpoints.testnet,
+      "mainnet-beta": customUrls?.['mainnet-beta'] || process.env.TRIBUTARY_MAINNET_RPC || params.rpc.endpoints['mainnet-beta']
+    };
+
+    this.logger.info('Using default RPC URLs', {
+      devnet: defaultUrls.devnet,
+      testnet: defaultUrls.testnet,
+      'mainnet-beta': defaultUrls['mainnet-beta']
+    });
+
+    return defaultUrls;
+  }
+
+  public async cleanupTempFiles(patterns?: string[]): Promise<number> {
+    return this.logger.logOperation('cleanupTempFiles', async () => {
+      try {
+        const defaultPatterns = ['*.tmp', '*.temp', '*.log'];
+        const cleanupPatterns = patterns || defaultPatterns;
+
+        const cleanedCount = await this.fileStorage.cleanupTempFiles(cleanupPatterns);
+
+        this.logger.info(`Temporary file cleanup completed`, {
+          patterns: cleanupPatterns,
+          cleanedCount
+        });
+
+        return cleanedCount;
+      } catch (error) {
+        throw new ConfigurationError(
+          `Failed to cleanup temporary files: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          { patterns, error: String(error) }
+        );
+      }
+    });
+  }
+
+  public async autoCleanupOnCommand(): Promise<void> {
+    try {
+      const cleanedCount = await this.cleanupTempFiles();
+      if (cleanedCount > 0) {
+        this.logger.info(`Auto-cleanup removed ${cleanedCount} temporary files`);
+      }
+    } catch (error) {
+      // Don't fail the main operation if cleanup fails
+      this.logger.warn('Auto-cleanup failed', { error: String(error) });
+    }
   }
 }

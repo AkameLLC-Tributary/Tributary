@@ -1,0 +1,36 @@
+[project]
+name = "testTributary_YAMLTest"
+created = "2025-09-20T18:32:29.909Z"
+network = "testnet"
+
+[token]
+base_token = "YOUR_TOKEN_ADDRESS_HERE"
+admin_wallet = "YOUR_ADMIN_WALLET_ADDRESS_HERE"
+
+[distribution]
+auto_distribute = false
+minimum_balance = 0
+batch_size = 10
+
+[security]
+key_encryption = true
+backup_enabled = true
+audit_log = true
+
+[network]
+timeout = 30000
+max_retries = 3
+retry_delay = 1000
+[network.rpc_urls]
+devnet = "https://api.devnet.solana.com"
+testnet = "https://api.testnet.solana.com"
+mainnet-beta = "https://api.mainnet-beta.solana.com"
+
+
+[logging]
+level = "info"
+log_dir = "./logs"
+enable_console = true
+enable_file = true
+max_files = 14
+max_size = "20m"

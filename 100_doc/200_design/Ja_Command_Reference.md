@@ -71,7 +71,7 @@ tributary collect [options]
 | `--token <address>` | string | 設定ファイル値 | 収集対象トークンアドレス |
 | `--threshold <amount>` | number | 0 | 最小保有量閾値 |
 | `--max-holders <number>` | number | 無制限 | 最大収集数制限 |
-| `--output-file <path>` | string | - | 結果出力ファイルパス |
+| `--output-file <path>` | string | - | 結果出力ファイルパス（.json/.csv/.yaml対応） |
 | `--cache, -c` | boolean | true | キャッシュ使用 |
 | `--cache-ttl <seconds>` | number | 3600 | キャッシュ有効期間（秒） |
 | `--exclude <addresses>` | string | - | 除外アドレスリスト（カンマ区切り） |
@@ -87,8 +87,14 @@ tributary collect --token "TokenAddress..." --exclude "LargeHolder1,LargeHolder2
 # キャッシュ無効化
 tributary collect --token "TokenAddress..." --cache false
 
-# 結果をファイル出力
+# 結果をファイル出力（JSON形式）
 tributary collect --token "TokenAddress..." --output-file holders.json
+
+# CSV形式での出力（スプレッドシート互換）
+tributary collect --token "TokenAddress..." --output-file holders.csv
+
+# YAML形式での出力
+tributary collect --token "TokenAddress..." --output-file holders.yaml
 ```
 
 ### 2.3 distribute - トークン配布

@@ -11,6 +11,7 @@ import {
   ValidationError,
   NetworkError
 } from '../../domain/errors';
+import { getParameters } from '../../config/parameters';
 
 export interface WalletCollectorServiceOptions {
   rpcClient?: SolanaRpcClient;
@@ -56,7 +57,8 @@ export class WalletCollectorService {
       const filteredHolders = this.applyFilters(holders, options);
 
       if (options.useCache !== false) {
-        await this.cacheResult(cacheKey, filteredHolders, options.cacheTtl || 3600);
+        const params = getParameters();
+        await this.cacheResult(cacheKey, filteredHolders, options.cacheTtl || params.cache.walletCacheTtlSeconds);
       }
 
       this.logger.info('Wallet collection completed', {
@@ -99,6 +101,12 @@ export class WalletCollectorService {
       this.logger.info('Starting token holder fetch', {
         tokenAddress: options.tokenAddress.toString()
       });
+
+      // Validate token address first to provide better error messages
+      const isValid = await this.rpcClient.validateTokenAddress(options.tokenAddress);
+      if (!isValid) {
+        throw new ValidationError(`Invalid or non-existent token address: ${options.tokenAddress.toString()}`);
+      }
 
       const startTime = Date.now();
       const holders = await this.rpcClient.getTokenHolders(
@@ -183,13 +191,20 @@ export class WalletCollectorService {
     filePath?: string
   ): Promise<string> {
     return this.logger.logOperation('exportWallets', async () => {
-      const exportPath = filePath || `wallets_${Date.now()}.${format}`;
+      const params = getParameters();
+      const timestamp = Date.now();
+      const defaultPath = params.export.fileNamePattern
+        .replace('{type}', 'wallets')
+        .replace('{timestamp}', timestamp.toString())
+        .replace('{format}', format);
+
+      const exportPath = filePath || defaultPath;
 
       if (format === 'json') {
         await this.storage.writeJson(exportPath, holders);
       } else if (format === 'csv') {
         const csvContent = this.convertToCsv(holders);
-        await this.storage.writeJson(`${exportPath}.json`, { csvContent });
+        await this.storage.writeText(exportPath, csvContent);
       }
 
       this.logger.info('Wallet data exported', {

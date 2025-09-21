@@ -71,7 +71,7 @@ tributary collect [options]
 | `--token <address>` | string | Config file value | Target token address for collection |
 | `--threshold <amount>` | number | 0 | Minimum holding amount threshold |
 | `--max-holders <number>` | number | Unlimited | Maximum collection count limit |
-| `--output-file <path>` | string | - | Result output file path |
+| `--output-file <path>` | string | - | Result output file path (supports .json/.csv/.yaml) |
 | `--cache, -c` | boolean | true | Use cache |
 | `--cache-ttl <seconds>` | number | 3600 | Cache TTL in seconds |
 | `--exclude <addresses>` | string | - | Exclude address list (comma-separated) |
@@ -87,8 +87,14 @@ tributary collect --token "TokenAddress..." --exclude "LargeHolder1,LargeHolder2
 # Disable cache
 tributary collect --token "TokenAddress..." --cache false
 
-# Output to file
+# Output to file (JSON format)
 tributary collect --token "TokenAddress..." --output-file holders.json
+
+# CSV format output (spreadsheet-compatible)
+tributary collect --token "TokenAddress..." --output-file holders.csv
+
+# YAML format output
+tributary collect --token "TokenAddress..." --output-file holders.yaml
 ```
 
 ### 2.3 distribute - Token Distribution

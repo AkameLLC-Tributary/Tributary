@@ -82,6 +82,9 @@ tributary collect --token "So11111111111111111111111111111111111111112" --thresh
 tributary collect --threshold 0.1 \
   --exclude "LargeHolder1,LargeHolder2" \
   --output-file holders.json
+
+# キャッシュを無効化してリアルタイムデータを取得
+tributary collect --cache false --threshold 0.1
 ```
 
 ### 3. 配布シミュレーション（推奨）
@@ -282,6 +285,103 @@ tributary config export [options]
 - `--output <path>` - 出力ファイルパス
 - `--format <format>` - エクスポート形式: toml, json, yaml（デフォルト: toml）
 - `--exclude-secrets` - 機密情報を除外
+
+## キャッシュシステム
+
+Tributaryはパフォーマンス向上とRPC呼び出し削減のためのインテリジェントなキャッシュシステムを含んでいます。
+
+### キャッシュ機能
+
+**デフォルト動作:**
+- 全ての操作で**キャッシュはデフォルトで有効**
+- キャッシュされたデータにより応答速度が大幅に向上
+- TTL設定に基づいてキャッシュは自動的に期限切れ
+
+**キャッシュ制御:**
+```bash
+# キャッシュを有効化（デフォルト動作）
+tributary collect --cache true
+
+# リアルタイムデータのためキャッシュを無効化
+tributary collect --cache false
+
+# カスタムキャッシュTTL（生存時間）
+tributary collect --cache-ttl 7200  # 2時間
+```
+
+**キャッシュを無効化すべき場合:**
+- リアルタイムで最新の保有者情報が必要な場合
+- 頻繁に変更されるデータでのテスト
+- 配布計算のデバッグ
+- 初回セットアップの検証
+
+**パフォーマンスへの影響:**
+- キャッシュ有効: 繰り返し操作で高速応答
+- キャッシュ無効: 低速だが常に最新のデータ
+
+### キャッシュ保存場所
+キャッシュファイルはローカルに保存され、システムが自動的に管理します。
+
+## 出力ファイル形式
+
+Tributaryはトークン保有者データ収集で複数の出力形式をサポートしています。
+
+### サポート形式
+
+**JSON形式 (.json)**:
+- 完全なメタデータを含む構造化データ
+- 機械可読形式
+- データ型と精度を保持
+- プログラムでの処理に最適
+
+```json
+[
+  {
+    "address": "D8zGvbM3w6bcAsnfWcZnWEz2GLeK7LPVftqwsMDCkcHk",
+    "balance": "10999999990.000002",
+    "percentage": 100.0000
+  },
+  {
+    "address": "22XkWSj5b7MTgaJr5eSs6Wd1dPzHEaZrQNjW3BeQnGv4",
+    "balance": "100.0000",
+    "percentage": 0.0009
+  }
+]
+```
+
+**CSV形式 (.csv)**:
+- スプレッドシート互換形式
+- ヘッダー行を自動的に含む
+- Excel/Google Sheetsへの簡単インポート
+- 人間が読みやすい表形式データ
+
+```csv
+Address,Balance,Percentage
+D8zGvbM3w6bcAsnfWcZnWEz2GLeK7LPVftqwsMDCkcHk,10999999990.000002,100.0000
+22XkWSj5b7MTgaJr5eSs6Wd1dPzHEaZrQNjW3BeQnGv4,100.0000,0.0009
+```
+
+**YAML形式 (.yaml/.yml)**:
+- 人間が読みやすい構造化形式
+- 設定ファイルに適している
+- データ階層を保持
+
+### 形式検出
+ファイル形式はファイル拡張子から自動的に検出されます：
+
+```bash
+# 自動形式検出
+tributary collect --output-file holders.json   # → JSON形式
+tributary collect --output-file holders.csv    # → CSV形式
+tributary collect --output-file holders.yaml   # → YAML形式
+tributary collect --output-file data.txt       # → JSON形式（デフォルト）
+```
+
+### 用途
+
+- **JSON**: API統合、データ処理、バックアップストレージ
+- **CSV**: スプレッドシート分析、レポート作成、データ可視化
+- **YAML**: 設定ファイル、人間が読みやすいドキュメント
 
 ## 設定
 

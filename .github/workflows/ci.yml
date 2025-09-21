@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+
+    - name: Install dependencies
+      run: |
+        cd 200_src
+        npm ci
+
+    - name: Run linting
+      run: |
+        cd 200_src
+        npm run lint
+
+    - name: Run type checking
+      run: |
+        cd 200_src
+        npm run typecheck
+
+    - name: Run tests
+      run: |
+        cd 200_src
+        npm run test
+
+    - name: Run build
+      run: |
+        cd 200_src
+        npm run build

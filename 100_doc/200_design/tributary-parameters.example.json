@@ -10,12 +10,6 @@
     "// timeout": "Network request timeout in milliseconds",
     "timeout": 30000,
 
-    "// maxRetries": "Maximum number of retry attempts for failed requests",
-    "maxRetries": 3,
-
-    "// retryDelay": "Delay between retry attempts in milliseconds",
-    "retryDelay": 1000,
-
     "// confirmationTimeout": "Transaction confirmation timeout in milliseconds",
     "confirmationTimeout": 60000,
 
@@ -47,15 +41,29 @@
     }
   },
 
-  "distribution": {
-    "// defaultBatchSize": "Default number of recipients per batch",
-    "defaultBatchSize": 10,
+  "snapshot": {
+    "// defaultTiming": "Default snapshot timing (immediate or minutes ago)",
+    "defaultTiming": "immediate",
 
-    "// maxBatchSize": "Maximum allowed batch size",
-    "maxBatchSize": 50,
+    "// backupTiming": "Fallback timing in minutes when snapshot fails",
+    "backupTiming": 3,
 
-    "// batchDelayMs": "Delay between batches in milliseconds",
-    "batchDelayMs": 100,
+    "// maxRetryMinutes": "Maximum retry time range for snapshot acquisition",
+    "maxRetryMinutes": 10,
+
+    "// consistencyCheckEnabled": "Enable snapshot consistency validation",
+    "consistencyCheckEnabled": true,
+
+    "// maxTimeDriftSeconds": "Maximum acceptable time drift between snapshots",
+    "maxTimeDriftSeconds": 60
+  },
+
+  "transaction": {
+    "// batchSize": "Default number of transactions per batch (1-100)",
+    "batchSize": 20,
+
+    "// maxConcurrentBatches": "Maximum concurrent batches (1-10)",
+    "maxConcurrentBatches": 3,
 
     "// estimatedGasPerTransaction": "Estimated SOL cost per transaction",
     "estimatedGasPerTransaction": 0.000005,
@@ -63,6 +71,28 @@
     "// estimatedTimePerBatchSeconds": "Estimated processing time per batch",
     "estimatedTimePerBatchSeconds": 2,
 
+    "// batchDelayMs": "Delay between batches in milliseconds",
+    "batchDelayMs": 100
+  },
+
+  "retry": {
+    "// maxAttempts": "Maximum retry attempts (1-10)",
+    "maxAttempts": 3,
+
+    "// initialDelay": "Initial retry delay in seconds",
+    "initialDelay": 1,
+
+    "// backoffStrategy": "Backoff strategy (linear/exponential/fixed)",
+    "backoffStrategy": "exponential",
+
+    "// maxDelay": "Maximum delay between retries in seconds",
+    "maxDelay": 30,
+
+    "// timeoutSeconds": "Transaction timeout in seconds",
+    "timeoutSeconds": 60
+  },
+
+  "distribution": {
     "riskThresholds": {
       "// largeAmountThreshold": "Distribution amount that triggers large amount warning",
       "largeAmountThreshold": 100000,
@@ -72,6 +102,167 @@
 
       "// smallAmountThreshold": "Individual amount that triggers small amount warning",
       "smallAmountThreshold": 0.001
+    },
+
+    "multiTokenWeighting": {
+      "// defaultMethod": "Default weighting method (equal/tiered/proportional/custom)",
+      "defaultMethod": "proportional",
+
+      "// calculationBase": "Base for weight calculation (source_holdings/recipient_holdings)",
+      "calculationBase": "recipient_holdings",
+
+      "// normalizationMethod": "Weight normalization method (sum_to_one/max_to_one/none)",
+      "normalizationMethod": "sum_to_one",
+
+      "// minimumWeight": "Minimum weight value",
+      "minimumWeight": 0.01,
+
+      "// maximumWeight": "Maximum weight value",
+      "maximumWeight": 0.80,
+
+      "// tokens": "Default token configuration",
+      "tokens": [
+        {
+          "mint": "So11111111111111111111111111111111111111112",
+          "symbol": "SOL",
+          "enabled": true
+        },
+        {
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "symbol": "USDC",
+          "enabled": true
+        }
+      ]
+    },
+
+    "multiWalletWeighting": {
+      "// defaultMethod": "Default wallet weighting method (unweighted/custom/proportional)",
+      "defaultMethod": "unweighted",
+
+      "// maxWalletsPerUser": "Maximum wallets allowed per user",
+      "maxWalletsPerUser": 10,
+
+      "// minHoldingThreshold": "Minimum holding threshold for wallet inclusion",
+      "minHoldingThreshold": 1.0,
+
+      "// maxWeightPerUser": "Maximum weight per user to prevent concentration",
+      "maxWeightPerUser": 1000000,
+
+      "// userIdentification": "Method for identifying user wallet groups",
+      "userIdentification": {
+        "method": "manual_grouping",
+        "autoDetection": false
+      },
+
+      "// unweightedConfig": "Configuration for unweighted method",
+      "unweightedConfig": {
+        "aggregationMethod": "simple_sum"
+      },
+
+      "// proportionalConfig": "Configuration for proportional method",
+      "proportionalConfig": {
+        "distributionType": "proportional",
+        "calculationMethod": "logarithmic",
+        "referenceMetric": "combined_ratio",
+        "combinationRatio": {
+          "baseTokenWeight": 0.6,
+          "investmentTokenWeight": 0.4
+        }
+      }
+    },
+
+    "logic": {
+      "// defaultType": "Default distribution type (fixed/tiered/proportional)",
+      "defaultType": "proportional",
+
+      "// defaultMethod": "Default calculation method (linear/logarithmic/square_root)",
+      "defaultMethod": "linear",
+
+      "// defaultPreset": "Default preset configuration",
+      "defaultPreset": null,
+
+      "// enableLimits": "Enable distribution limits by default",
+      "enableLimits": false,
+
+      "// defaultCap": "Default distribution cap",
+      "defaultCap": null,
+
+      "// defaultFloor": "Default distribution floor",
+      "defaultFloor": null,
+
+      "// tieredConfig": "Tiered distribution configuration",
+      "tieredConfig": {
+        "// enabled": "Enable tiered distribution",
+        "enabled": false,
+
+        "// boundaries": "Tier boundary values (token amounts)",
+        "boundaries": [100, 1000, 10000],
+
+        "// methods": "Calculation method for each tier",
+        "methods": ["linear", "logarithmic", "square_root"],
+
+        "// weights": "Weight multipliers for each tier",
+        "weights": [1.0, 1.5, 2.0]
+      },
+
+      "// proportionalConfig": "Proportional distribution configuration",
+      "proportionalConfig": {
+        "// scalingFactor": "Scaling factor for proportional calculations",
+        "scalingFactor": 1.0,
+
+        "// minimumThreshold": "Minimum holding to qualify for distribution",
+        "minimumThreshold": 0,
+
+        "// logarithmicBase": "Base for logarithmic calculations (default: e)",
+        "logarithmicBase": "e",
+
+        "// squareRootPower": "Power for square root calculations (default: 0.5)",
+        "squareRootPower": 0.5
+      },
+
+      "// fixedConfig": "Fixed distribution configuration",
+      "fixedConfig": {
+        "// amountPerRecipient": "Fixed amount per recipient (overrides total amount division)",
+        "amountPerRecipient": null,
+
+        "// excludeZeroBalances": "Exclude recipients with zero balance",
+        "excludeZeroBalances": true,
+
+        "// roundingMode": "Rounding mode for calculations (floor/ceil/round)",
+        "roundingMode": "floor"
+      },
+
+      "// presetConfigurations": "Example preset configurations (for reference only - customize for your needs)",
+      "presetConfigurations": {
+        "example_1": {
+          "type": "fixed",
+          "method": null,
+          "limits": { "cap": null, "floor": null },
+          "fixedConfig": {
+            "excludeZeroBalances": true,
+            "roundingMode": "floor"
+          }
+        },
+        "example_2": {
+          "type": "proportional",
+          "method": "linear",
+          "limits": { "cap": null, "floor": null },
+          "proportionalConfig": {
+            "scalingFactor": 1.0,
+            "minimumThreshold": 0
+          }
+        },
+        "example_3": {
+          "type": "tiered",
+          "method": "logarithmic",
+          "limits": { "cap": null, "floor": null },
+          "tieredConfig": {
+            "boundaries": [100, 1000, 10000],
+            "methods": ["linear", "logarithmic", "square_root"],
+            "weights": [1.0, 1.0, 1.0]
+          }
+        }
+      }
     }
   },
 

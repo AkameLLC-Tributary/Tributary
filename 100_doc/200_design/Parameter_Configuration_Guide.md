@@ -24,14 +24,38 @@ Set environment variables with the `TRIBUTARY_` prefix:
 # Network configuration
 export TRIBUTARY_DEFAULT_NETWORK=mainnet-beta
 export TRIBUTARY_NETWORK_TIMEOUT=45000
-export TRIBUTARY_MAX_RETRIES=5
 
 # RPC endpoints
 export TRIBUTARY_DEVNET_RPC=https://your-custom-devnet-rpc.com
 export TRIBUTARY_MAINNET_RPC=https://your-custom-mainnet-rpc.com
 
-# Distribution settings
-export TRIBUTARY_BATCH_SIZE=20
+# Snapshot settings
+export TRIBUTARY_SNAPSHOT_DEFAULT_TIMING=5
+export TRIBUTARY_SNAPSHOT_BACKUP_TIMING=3
+
+# Transaction settings
+export TRIBUTARY_TRANSACTION_BATCH_SIZE=25
+export TRIBUTARY_TRANSACTION_MAX_CONCURRENT_BATCHES=5
+
+# Retry settings
+export TRIBUTARY_RETRY_MAX_ATTEMPTS=5
+export TRIBUTARY_RETRY_BACKOFF_STRATEGY=exponential
+export TRIBUTARY_RETRY_TIMEOUT_SECONDS=90
+
+# Multi-token weighting
+export TRIBUTARY_MULTI_TOKEN_DEFAULT_METHOD=proportional
+export TRIBUTARY_MULTI_TOKEN_CALCULATION_BASE=recipient_holdings
+export TRIBUTARY_MULTI_TOKEN_NORMALIZATION=sum_to_one
+
+# Multi-wallet weighting
+export TRIBUTARY_MULTI_WALLET_DEFAULT_METHOD=unweighted
+export TRIBUTARY_MULTI_WALLET_MAX_WALLETS_PER_USER=10
+export TRIBUTARY_MULTI_WALLET_MIN_HOLDING_THRESHOLD=1.0
+export TRIBUTARY_MULTI_WALLET_USER_IDENTIFICATION=manual_grouping
+
+# Distribution logic
+export TRIBUTARY_DISTRIBUTION_DEFAULT_TYPE=proportional
+export TRIBUTARY_DISTRIBUTION_DEFAULT_METHOD=logarithmic
 
 # Logging
 export TRIBUTARY_LOG_LEVEL=debug
@@ -71,8 +95,6 @@ tributary distribute --batch-size 25
 
 - **defaultNetwork**: Default network for new projects (`devnet`/`testnet`/`mainnet-beta`)
 - **timeout**: Network request timeout in milliseconds
-- **maxRetries**: Maximum retry attempts for failed requests
-- **retryDelay**: Delay between retries in milliseconds
 - **confirmationTimeout**: Transaction confirmation timeout
 - **commitment**: Transaction commitment level
 
@@ -81,12 +103,57 @@ tributary distribute --batch-size 25
 - **endpoints**: Primary RPC endpoints for each network
 - **fallbackEndpoints**: Backup endpoints in case primary fails
 
-### Distribution Settings
+### Snapshot Settings
 
-- **defaultBatchSize**: Default number of recipients per batch
-- **maxBatchSize**: Maximum allowed batch size
-- **batchDelayMs**: Delay between batches
+- **defaultTiming**: Default snapshot timing (`immediate` or minutes ago)
+- **backupTiming**: Fallback timing in minutes when snapshot fails
+- **maxRetryMinutes**: Maximum retry time range for snapshot acquisition
+- **consistencyCheckEnabled**: Enable snapshot consistency validation
+- **maxTimeDriftSeconds**: Maximum acceptable time drift between snapshots
+
+### Transaction Settings
+
+- **batchSize**: Default number of transactions per batch (1-100)
+- **maxConcurrentBatches**: Maximum concurrent batches (1-10)
 - **estimatedGasPerTransaction**: Estimated SOL cost per transaction
+- **estimatedTimePerBatchSeconds**: Estimated processing time per batch
+- **batchDelayMs**: Delay between batches in milliseconds
+
+### Retry Settings
+
+- **maxAttempts**: Maximum retry attempts (1-10)
+- **initialDelay**: Initial retry delay in seconds
+- **backoffStrategy**: Backoff strategy (`linear`/`exponential`/`fixed`)
+- **maxDelay**: Maximum delay between retries in seconds
+- **timeoutSeconds**: Transaction timeout in seconds
+
+### Multi-Token Weighting Settings
+
+- **defaultMethod**: Default weighting method (`equal`/`tiered`/`proportional`/`custom`)
+- **calculationBase**: Base for weight calculation (`source_holdings`/`recipient_holdings`)
+- **normalizationMethod**: Weight normalization method (`sum_to_one`/`max_to_one`/`none`)
+- **minimumWeight**: Minimum weight value
+- **maximumWeight**: Maximum weight value
+- **tokens**: Default token configuration
+
+### Multi-Wallet Weighting Settings
+
+- **defaultMethod**: Default wallet weighting method (`unweighted`/`custom`/`proportional`)
+- **maxWalletsPerUser**: Maximum wallets allowed per user
+- **minHoldingThreshold**: Minimum holding threshold for wallet inclusion
+- **maxWeightPerUser**: Maximum weight per user to prevent concentration
+- **userIdentification**: Method for identifying user wallet groups
+- **unweightedConfig**: Configuration for unweighted aggregation method
+- **proportionalConfig**: Configuration for proportional weighting method
+
+### Distribution Logic Settings
+
+- **defaultType**: Default distribution type (`fixed`/`tiered`/`proportional`)
+- **defaultMethod**: Default calculation method (`linear`/`logarithmic`/`square_root`)
+- **defaultPreset**: Default preset configuration
+- **enableLimits**: Enable distribution limits by default
+- **defaultCap**: Default distribution cap
+- **defaultFloor**: Default distribution floor
 - **riskThresholds**: Thresholds for warnings (large amounts, many recipients, etc.)
 
 ### Token Settings

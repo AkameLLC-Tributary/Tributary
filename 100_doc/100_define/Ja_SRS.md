@@ -242,6 +242,7 @@ Solanaブロックチェーンを活用したCLI特化のOSSツールとして�
 - **FR-3.34**: `tributary audit operations` - 操作履歴確認コマンド
 - **FR-3.35**: `tributary audit process` - 決定プロセス履歴コマンド
 - **FR-3.36**: `tributary audit report` - 監査レポート生成コマンド
+- **FR-3.39**: `tributary config environment` - 環境設定管理コマンド
 
 #### 3.1.4 設定管理機能
 - **FR-4.1**: ウォレット設定を安全に保存できること
@@ -250,6 +251,10 @@ Solanaブロックチェーンを活用したCLI特化のOSSツールとして�
 - **FR-4.4**: 設定のインポート・エクスポートができること
 - **FR-4.5**: PDAデータとローカル設定の整合性を保証できること
 - **FR-4.6**: マルチウォレットプロジェクト設定のバックアップ・復元ができること
+- **FR-4.7**: 統一されたTOML形式での設定管理ができること
+- **FR-4.8**: 環境別設定の分離管理ができること（development/production）
+- **FR-4.9**: 環境変数による設定上書き機能が利用できること
+- **FR-4.10**: 設定優先順位の明確な制御ができること（環境変数 > ユーザー設定 > 環境設定 > デフォルト設定）
 
 #### 3.1.5 レポート・監視機能
 - **FR-5.1**: 配布状況のレポートを生成できること
@@ -586,6 +591,24 @@ tributary security logs --export --output audit-logs.csv --privacy-mask
 ```
 
 ### 8.2 設定ファイル形式
+
+#### 8.2.1 設定ファイル構成
+```
+config/
+├── default.toml          # デフォルト設定（必須）
+├── development.toml      # 開発環境設定
+├── production.toml       # 本番環境設定
+├── parameters.toml       # ユーザーカスタム設定（オプション）
+└── README.md            # 設定管理ドキュメント
+```
+
+#### 8.2.2 設定優先順位
+1. **環境変数** (最高優先度) - `TRIBUTARY_{SECTION}_{KEY}`
+2. **parameters.toml** (ユーザーカスタム設定)
+3. **{環境}.toml** (環境固有設定)
+4. **default.toml** (ベース設定)
+
+#### 8.2.3 プロジェクト設定ファイル形式
 ```toml
 [project]
 name = "MyProject"
@@ -939,6 +962,46 @@ confirmation_timeout_hours = 2
 timeout_action = "cancel"  # cancel, proceed, prompt
 send_reminder = true
 reminder_interval_minutes = 30
+```
+
+#### 8.2.4 環境変数による設定上書き
+```bash
+# ネットワーク設定
+TRIBUTARY_NETWORK_TIMEOUT=45000
+TRIBUTARY_NETWORK_MAX_RETRIES=5
+TRIBUTARY_NETWORK_DEFAULT_NETWORK=mainnet-beta
+
+# ログ設定
+TRIBUTARY_LOGGING_DEFAULT_LEVEL=debug
+TRIBUTARY_LOGGING_ENABLE_CONSOLE=true
+TRIBUTARY_LOGGING_ENABLE_FILE=false
+
+# セキュリティ設定
+TRIBUTARY_SECURITY_DEFAULT_KEY_ENCRYPTION=false
+TRIBUTARY_SECURITY_DEFAULT_BACKUP_ENABLED=true
+
+# 配布設定
+TRIBUTARY_DISTRIBUTION_DEFAULT_BATCH_SIZE=20
+TRIBUTARY_DISTRIBUTION_MAX_BATCH_SIZE=100
+
+# PDA容量管理
+TRIBUTARY_PDA_CAPACITY_MAX_WALLET_GROUPS_UNIFIED=30
+TRIBUTARY_PDA_CAPACITY_AUTO_MIGRATE_ON_CAPACITY=false
+```
+
+#### 8.2.5 設定管理コマンド
+```bash
+# 環境設定管理
+tributary config environment --set development
+tributary config environment --show
+
+# 設定検証
+tributary config validate --environment production
+tributary config validate --check-env-vars
+
+# 設定表示
+tributary config show --environment development --section network
+tributary config show --with-env-vars --mask-secrets
 ```
 
 ### 8.3 エラーコード一覧

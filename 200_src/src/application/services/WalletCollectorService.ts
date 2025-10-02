@@ -11,7 +11,7 @@ import {
   ValidationError,
   NetworkError
 } from '../../domain/errors';
-import { getParameters } from '../../config/parameters';
+import { ConfigurationManager } from '../../config/ConfigurationManager';
 
 export interface WalletCollectorServiceOptions {
   rpcClient?: SolanaRpcClient;
@@ -23,11 +23,13 @@ export class WalletCollectorService {
   private readonly rpcClient: SolanaRpcClient;
   private readonly storage: FileStorage;
   private readonly logger: Logger;
+  private readonly configManager: ConfigurationManager;
 
   constructor(
     network: NetworkType,
     options: WalletCollectorServiceOptions = {}
   ) {
+    this.configManager = new ConfigurationManager();
     this.rpcClient = options.rpcClient || new SolanaRpcClient({ network });
     this.storage = options.storage || new FileStorage();
     this.logger = options.logger || createLogger('WalletCollectorService');
@@ -57,8 +59,8 @@ export class WalletCollectorService {
       const filteredHolders = this.applyFilters(holders, options);
 
       if (options.useCache !== false) {
-        const params = getParameters();
-        await this.cacheResult(cacheKey, filteredHolders, options.cacheTtl || params.cache.walletCacheTtlSeconds);
+        const config = this.configManager.getConfig();
+        await this.cacheResult(cacheKey, filteredHolders, options.cacheTtl || config.cache.wallet_cache_ttl_seconds);
       }
 
       this.logger.info('Wallet collection completed', {
@@ -191,9 +193,9 @@ export class WalletCollectorService {
     filePath?: string
   ): Promise<string> {
     return this.logger.logOperation('exportWallets', async () => {
-      const params = getParameters();
+      const config = this.configManager.getConfig();
       const timestamp = Date.now();
-      const defaultPath = params.export.fileNamePattern
+      const defaultPath = config.export.file_name_pattern
         .replace('{type}', 'wallets')
         .replace('{timestamp}', timestamp.toString())
         .replace('{format}', format);

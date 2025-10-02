@@ -11,11 +11,7 @@ import {
   getAssociatedTokenAddress,
   createAssociatedTokenAccountInstruction,
   TOKEN_PROGRAM_ID,
-  TOKEN_2022_PROGRAM_ID,
-  ASSOCIATED_TOKEN_PROGRAM_ID,
-  getMint,
-  getAccount,
-  createTransferCheckedWithTransferHookInstruction
+  TOKEN_2022_PROGRAM_ID
 } from '@solana/spl-token';
 import { SolanaRpcClient } from '../../infrastructure/rpc/SolanaRpcClient';
 import { FileStorage } from '../../infrastructure/storage';
@@ -33,7 +29,7 @@ import {
   NetworkError,
   ResourceError
 } from '../../domain/errors';
-import { getParameters } from '../../config/parameters';
+import { ConfigurationManager } from '../../config/ConfigurationManager';
 import { RobustPublicKeyHandler } from '../../shared/utils/enhanced-publickey-solution';
 
 export interface DistributionServiceOptions {
@@ -63,19 +59,21 @@ export class DistributionService {
   private readonly logger: Logger;
   private readonly batchSize: number;
   private readonly maxRetries: number;
+  private readonly configManager: ConfigurationManager;
 
   constructor(
     network: NetworkType,
     private readonly adminKeypair: Keypair,
     options: DistributionServiceOptions = {}
   ) {
-    const params = getParameters();
+    this.configManager = new ConfigurationManager();
+    const config = this.configManager.getConfig();
 
     this.rpcClient = options.rpcClient || new SolanaRpcClient({ network });
     this.storage = options.storage || new FileStorage();
     this.logger = options.logger || createLogger('DistributionService');
-    this.batchSize = options.batchSize || params.distribution.defaultBatchSize;
-    this.maxRetries = options.maxRetries || params.network.maxRetries;
+    this.batchSize = options.batchSize || config.distribution.default_batch_size;
+    this.maxRetries = options.maxRetries || config.network.max_retries;
 
     // Debug log keypair information
     this.logger.debug('DistributionService constructor', {
@@ -188,8 +186,8 @@ export class DistributionService {
           }
         }
 
-        const params = getParameters();
-        await this.delay(params.distribution.batchDelayMs);
+        const config = this.configManager.getConfig();
+        await this.delay(config.distribution.batch_delay_ms);
       }
 
       await this.saveDistribution(distribution);
@@ -1023,30 +1021,30 @@ export class DistributionService {
   }
 
   private estimateGasCost(recipientCount: number): number {
-    const params = getParameters();
-    return recipientCount * params.distribution.estimatedGasPerTransaction;
+    const config = this.configManager.getConfig();
+    return recipientCount * config.distribution.estimated_gas_per_tx;
   }
 
   private estimateDuration(recipientCount: number, batchSize: number): number {
-    const params = getParameters();
+    const config = this.configManager.getConfig();
     const batchCount = Math.ceil(recipientCount / batchSize);
-    return batchCount * params.distribution.estimatedTimePerBatchSeconds * 1000; // milliseconds
+    return batchCount * config.distribution.estimated_time_per_batch * 1000; // milliseconds
   }
 
   private async assessRiskFactors(request: DistributionRequest): Promise<string[]> {
-    const params = getParameters();
+    const config = this.configManager.getConfig();
     const risks: string[] = [];
 
-    if (request.amount > params.distribution.riskThresholds.largeAmountThreshold) {
+    if (request.amount > config.distribution.risk_thresholds.large_amount_threshold) {
       risks.push('Large distribution amount may require additional confirmation');
     }
 
-    if (request.holders.length > params.distribution.riskThresholds.largeRecipientCountThreshold) {
+    if (request.holders.length > config.distribution.risk_thresholds.large_recipient_count_threshold) {
       risks.push('Large number of recipients may result in longer execution time');
     }
 
     const smallAmounts = request.holders.filter(h =>
-      (request.amount * h.percentage / 100) < params.distribution.riskThresholds.smallAmountThreshold
+      (request.amount * h.percentage / 100) < config.distribution.risk_thresholds.small_amount_threshold
     );
     if (smallAmounts.length > 0) {
       risks.push(`${smallAmounts.length} recipients will receive very small amounts`);

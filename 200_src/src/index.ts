@@ -7,6 +7,6 @@ export { DistributionService } from './application/services/DistributionService'
 export { SolanaRpcClient } from './infrastructure/rpc/SolanaRpcClient';
 export { FileStorage } from './infrastructure/storage';
 export { Logger, createLogger } from './infrastructure/logging/Logger';
-export { ConfigManager } from './infrastructure/config/ConfigManager';
+export { ConfigurationManager } from './config/ConfigurationManager';
 
 export { TributaryCLI } from './presentation/cli';

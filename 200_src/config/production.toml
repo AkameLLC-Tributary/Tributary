@@ -1,0 +1,37 @@
+# Tributary CLI Production Configuration
+# 本番環境特有の設定
+
+[network]
+# 本番環境では安定した設定
+default_network = "mainnet-beta"
+timeout = 45000
+max_retries = 3
+confirmation_timeout = 120000
+
+[logging]
+# 本番では必要最小限のログ
+default_level = "warn"
+enable_console = false
+enable_file = true
+
+[security]
+# 本番では最高セキュリティ
+default_key_encryption = true
+default_backup_enabled = true
+default_audit_log = true
+
+[distribution]
+# 本番では効率的なバッチサイズ
+default_batch_size = 20
+max_batch_size = 50
+batch_delay_ms = 200  # 本番では少し長めの間隔
+
+[cache]
+# 本番では長めのキャッシュ
+default_ttl_seconds = 7200
+wallet_cache_ttl_seconds = 3600
+
+[validation]
+# 本番では厳格な制限
+min_balance_for_distribution = 0.001
+wallet_validation_timeout = 10000

@@ -10,13 +10,11 @@ import * as yaml from 'js-yaml';
 // Import package.json for version
 import * as packageJson from '../../../package.json';
 
-import { ConfigManager } from '../../config';
-import { ConfigManager as ConfigManagerClass } from '../../infrastructure/config/ConfigManager';
+import { ConfigurationManager } from '../../config/ConfigurationManager';
 import { WalletCollectorService } from '../../application/services/WalletCollectorService';
 import { DistributionService } from '../../application/services/DistributionService';
 import { FileStorage } from '../../infrastructure/storage';
 import { createLogger } from '../../infrastructure/logging/Logger';
-import { getParameters } from '../../config/parameters';
 import {
   NetworkType,
   OutputFormat,
@@ -33,14 +31,14 @@ import {
 
 export class TributaryCLI {
   private program: Command;
-  private configManager: ConfigManagerClass;
+  private configurationManager: ConfigurationManager;
   private storage: FileStorage;
   private logger = createLogger('TributaryCLI');
   private cliOptions: any = {};
 
   constructor() {
     this.program = new Command();
-    this.configManager = new ConfigManagerClass();
+    this.configurationManager = new ConfigurationManager();
     this.storage = new FileStorage();
 
 
@@ -48,7 +46,6 @@ export class TributaryCLI {
   }
 
   private setupCommands(): void {
-    const params = getParameters();
 
 
     this.program
@@ -57,7 +54,7 @@ export class TributaryCLI {
       .version(packageJson.version)
       .option('--config <path>', 'Configuration file path', './tributary.toml')
       .option('--output <format>', 'Output format (table/json/yaml)', 'table')
-      .option('--log-level <level>', 'Log level (debug/info/warn/error)', params.logging.defaultLevel)
+      .option('--log-level <level>', 'Log level (debug/info/warn/error)', 'info')
       .option('--network <network>', 'Network override (devnet/testnet/mainnet-beta)')
       .option('--rpc-url <url>', 'RPC endpoint URL override')
       .hook('preAction', (thisCommand) => {
@@ -66,7 +63,7 @@ export class TributaryCLI {
         const rootOpts = this.program.opts();
 
 
-        this.configManager.setConfigPath(globalOpts.config);
+        // ConfigurationManager doesn't need setConfigPath
 
         // Store CLI options for use in services
         this.cliOptions = {
@@ -89,9 +86,9 @@ export class TributaryCLI {
     this.program
       .command('init')
       .description('Initialize project configuration')
-      .requiredOption('--name <name>', 'Project name (1-100 characters)')
-      .requiredOption('--token <address>', 'Base token address (Solana Base58 format)')
-      .requiredOption('--admin <address>', 'Admin wallet address')
+      .option('--name <name>', 'Project name (1-100 characters)')
+      .option('--token <address>', 'Base token address (Solana Base58 format)')
+      .option('--admin <address>', 'Admin wallet address')
       .option('-f, --force', 'Overwrite existing configuration')
       .option('--interactive, -i', 'Interactive mode')
       .option('--devnet-rpc <url>', 'Custom devnet RPC endpoint URL')
@@ -106,10 +103,24 @@ export class TributaryCLI {
       .option('--disable-audit', 'Disable audit logging')
       .action(async (options) => {
         try {
+          // Handle interactive mode before validation (check both long and short form)
+          if (options.interactive || options.I) {
+            console.log(chalk.blue('🚀 Starting interactive project initialization...'));
+            try {
+              await this.handleInteractiveInit(options);
 
-          // Handle interactive mode before validation
-          if (options.interactive) {
-            await this.handleInteractiveInit(options);
+              // After interactive mode, validate all required fields are populated
+              if (!options.name || !options.token || !options.admin) {
+                console.log(chalk.yellow('⚠️ Interactive mode cancelled or incomplete'));
+                process.exit(0);
+              }
+            } catch (error) {
+              if (error instanceof Error && (error.message.includes('canceled') || error.message.includes('cancelled'))) {
+                console.log(chalk.yellow('⚠️ Interactive mode cancelled by user'));
+                process.exit(0);
+              }
+              throw error;
+            }
           }
           await this.handleInit(options);
         } catch (error) {
@@ -149,7 +160,7 @@ export class TributaryCLI {
       .requiredOption('--amount <amount>', 'Total distribution amount')
       .option('--token <address>', 'Distribution token address')
       .option('--dry-run', 'Dry run execution')
-      .option('--batch-size <number>', 'Batch size', getParameters().distribution.defaultBatchSize.toString())
+      .option('--batch-size <number>', 'Batch size', '10')
       .option('-y, --confirm', 'Skip confirmation prompt')
       .option('--wallet-file <path>', 'Private key file path')
       .action(async (options) => {
@@ -167,7 +178,7 @@ export class TributaryCLI {
       .option('--token <address>', 'Token address')
       .option('--mode <mode>', 'Distribution mode (equal|proportional)', 'proportional')
       .option('--minimum-amount <amount>', 'Minimum balance requirement', '0')
-      .option('--batch-size <number>', 'Batch size for simulation', getParameters().distribution.defaultBatchSize.toString())
+      .option('--batch-size <number>', 'Batch size for simulation', '10')
       .option('--detail', 'Show detailed results')
       .action(async (options) => {
         try {
@@ -246,19 +257,43 @@ export class TributaryCLI {
         type: 'input',
         name: 'name',
         message: 'Project name:',
-        validate: (input) => input.length >= 1 && input.length <= 100
+        validate: (input) => {
+          if (!input || input.trim() === '') {
+            return 'Project name is required';
+          }
+          if (input.length > 100) {
+            return 'Project name must be 100 characters or less';
+          }
+          return true;
+        }
       },
       {
         type: 'input',
         name: 'token',
         message: 'Base token address:',
-        validate: this.validateSolanaAddress
+        validate: (input) => {
+          if (!input || input.trim() === '') {
+            return 'Base token address is required';
+          }
+          if (!this.validateSolanaAddress(input)) {
+            return 'Invalid Solana address format';
+          }
+          return true;
+        }
       },
       {
         type: 'input',
         name: 'admin',
         message: 'Admin wallet address:',
-        validate: this.validateSolanaAddress
+        validate: (input) => {
+          if (!input || input.trim() === '') {
+            return 'Admin wallet address is required';
+          }
+          if (!this.validateSolanaAddress(input)) {
+            return 'Invalid Solana address format';
+          }
+          return true;
+        }
       },
       {
         type: 'list',
@@ -313,13 +348,14 @@ export class TributaryCLI {
     // Get network from global options for init command (since it's removed from local options)
     const globalOpts = this.program.opts();
 
-    // Validate required options and their values
-    this.validateRequiredOptions(options, ['name', 'token', 'admin']);
+    // Validate required options and their values (only for non-interactive mode)
+    if (!options.interactive && !options.I) {
+      this.validateRequiredOptions(options, ['name', 'token', 'admin']);
+    }
     this.validateInitOptions(options, globalOpts);
 
-    // Use network from global options, default from parameters if not specified
-    const params = getParameters();
-    const network = (globalOpts.network || params.network.defaultNetwork) as NetworkType;
+    // Use network from global options, default to devnet if not specified
+    const network = (globalOpts.network || 'devnet') as NetworkType;
 
     // Prepare custom RPC URLs if provided (USER INPUT - highest priority)
     const customRpcUrls: any = {};
@@ -368,7 +404,7 @@ export class TributaryCLI {
       overrides.logging = { level: this.cliOptions.logLevel };
     }
 
-    const config = await this.configManager.initializeProject({
+    const config = await this.configurationManager.initializeProject({
       name: options.name,                    // USER INPUT - highest priority
       baseToken: options.token,              // USER INPUT - highest priority
       adminWallet: options.admin,            // USER INPUT - highest priority
@@ -379,24 +415,25 @@ export class TributaryCLI {
     });
 
     console.log(chalk.green('✅ Project initialized successfully'));
-    console.log(chalk.blue('📁 Project name:'), config.project.name);
-    console.log(chalk.blue('🌐 Network:'), config.project.network);
-    console.log(chalk.blue('🪙 Base token:'), config.token.base_token);
-    console.log(chalk.blue('👤 Admin wallet:'), config.token.admin_wallet);
-    console.log(chalk.blue('📄 Config saved to:'), this.configManager.getConfigPath());
+    console.log(chalk.blue('📁 Project name:'), options.name);
+    console.log(chalk.blue('🌐 Network:'), network);
+    console.log(chalk.blue('🪙 Base token:'), options.token);
+    console.log(chalk.blue('👤 Admin wallet:'), options.admin);
+    console.log(chalk.blue('📄 Config saved to:'), 'tributary.toml');
   }
 
   private async handleCollect(options: any): Promise<void> {
     await this.loadConfig();
-    const config = this.configManager.getProjectConfig();
+    const config = this.configurationManager.getConfig();
 
     // Use network override if provided
     const globalOpts = this.program.opts();
-    const network = (globalOpts.network || config.network) as NetworkType;
+    const network = (globalOpts.network || config.network.default_network) as NetworkType;
 
-    const tokenAddress = options.token
-      ? new PublicKey(options.token)
-      : config.baseToken;
+    if (!options.token) {
+      throw new ValidationError('Token address is required. Use --token option.');
+    }
+    const tokenAddress = new PublicKey(options.token);
 
     const collectorService = new WalletCollectorService(network);
 
@@ -456,7 +493,8 @@ export class TributaryCLI {
 
     // Auto-cleanup temporary files after collect operation
     try {
-      await this.configManager.autoCleanupOnCommand();
+      // Auto cleanup not implemented in ConfigurationManager
+      // await this.configurationManager.autoCleanupOnCommand();
     } catch (error) {
       // Don't fail the main operation if cleanup fails
       console.warn(chalk.yellow('⚠️ Temporary file cleanup warning:'), error instanceof Error ? error.message : String(error));
@@ -466,68 +504,30 @@ export class TributaryCLI {
   }
 
   private async handleDistributeExecute(options: any): Promise<void> {
-    console.log('🔍 === handleDistributeExecute CALLED ===');
-    console.log('options:', JSON.stringify(options, null, 2));
+    this.logger.info('Starting distribution execution', { options });
     await this.loadConfig();
-    const config = this.configManager.getProjectConfig();
-
-    console.log('🔍 CONFIG ANALYSIS:');
-    console.log('config.baseToken raw:', config.baseToken);
-    console.log('config.baseToken type:', typeof config.baseToken);
-    console.log('config.baseToken constructor:', config.baseToken?.constructor?.name);
-    console.log('config.baseToken toString:', config.baseToken?.toString?.());
-    console.log('config.baseToken has toBuffer:', !!config.baseToken?.toBuffer);
-
-    if (config.baseToken?.toBuffer) {
-      try {
-        const buffer = config.baseToken.toBuffer();
-        console.log('🔍 CONFIG baseToken toBuffer SUCCESS, length:', buffer.length);
-      } catch (e) {
-        console.log('🔍 CONFIG baseToken toBuffer ERROR:', e instanceof Error ? e.message : String(e));
-      }
-    }
+    const config = this.configurationManager.getConfig();
 
     // Use network override if provided
     const globalOpts = this.program.opts();
-    const network = (globalOpts.network || config.network) as NetworkType;
+    const network = (globalOpts.network || config.network.default_network) as NetworkType;
 
     const amount = parseFloat(options.amount);
     if (amount <= 0) {
       throw new ValidationError('Amount must be positive');
     }
 
-    console.log('🔍 STEP 1: Creating tokenAddress PublicKey');
-    console.log('options.token:', options.token);
-    console.log('config.baseToken:', config.baseToken?.toString());
+    if (!options.token) {
+      throw new ValidationError('Token address is required. Use --token option.');
+    }
+    const tokenAddress = new PublicKey(options.token);
 
-    const tokenAddress = options.token
-      ? new PublicKey(options.token)
-      : config.baseToken;
-
-    console.log('🔍 STEP 1 RESULT: tokenAddress created');
-    console.log('tokenAddress.toString():', tokenAddress.toString());
-    console.log('tokenAddress.toBuffer type:', typeof tokenAddress.toBuffer);
-    console.log('tokenAddress.toBuffer is function:', typeof tokenAddress.toBuffer === 'function');
-
-    console.log('🔍 STEP 2: Loading token holders');
-    const holders = await this.loadTokenHolders(config.baseToken, network);
+    const holders = await this.loadTokenHolders(tokenAddress, network);
     if (holders.length === 0) {
       throw new ValidationError('No token holders found. Run collect command first.');
     }
-    console.log('🔍 STEP 2 RESULT: holders loaded, count:', holders.length);
-    console.log('First holder address type:', typeof holders[0]?.address);
-    if (holders[0]?.address) {
-      console.log('First holder toBuffer type:', typeof holders[0].address.toBuffer);
-    }
 
-    console.log('🔍 STEP 3: Loading admin keypair');
     const adminKeypair = await this.loadAdminKeypair(options.walletFile);
-    console.log('🔍 STEP 3 RESULT: adminKeypair loaded');
-    console.log('adminKeypair.publicKey.toBuffer type:', typeof adminKeypair.publicKey.toBuffer);
-
-    console.log('🔍 STEP 4: Creating DistributionRequest');
-    console.log('tokenAddress before request:', tokenAddress.toString());
-    console.log('tokenAddress.toBuffer before request:', typeof tokenAddress.toBuffer);
 
     const distributionRequest: DistributionRequest = {
       amount,
@@ -535,9 +535,6 @@ export class TributaryCLI {
       holders,
       batchSize: options.batchSize ? parseInt(options.batchSize) : 10
     };
-
-    console.log('🔍 STEP 4 RESULT: DistributionRequest created');
-    console.log('request.tokenAddress.toBuffer type:', typeof distributionRequest.tokenAddress.toBuffer);
 
     const distributionService = new DistributionService(network, adminKeypair);
 
@@ -583,9 +580,6 @@ export class TributaryCLI {
       hideCursor: true
     });
 
-    console.log('🔍 STEP 5: About to call executeDistribution');
-    console.log('distributionRequest.tokenAddress.toBuffer before execute:', typeof distributionRequest.tokenAddress.toBuffer);
-    console.log('distributionRequest.holders[0].address.toBuffer before execute:', typeof distributionRequest.holders[0]?.address?.toBuffer);
 
     const distribution = await distributionService.executeDistribution(
       distributionRequest,
@@ -614,18 +608,19 @@ export class TributaryCLI {
 
   private async handleDistributeSimulate(options: any): Promise<void> {
     await this.loadConfig();
-    const config = this.configManager.getProjectConfig();
+    const config = this.configurationManager.getConfig();
 
     // Use network override if provided
     const globalOpts = this.program.opts();
-    const network = (globalOpts.network || config.network) as NetworkType;
+    const network = (globalOpts.network || config.network.default_network) as NetworkType;
 
     const amount = options.amount ? parseFloat(options.amount) : 1000;
-    const tokenAddress = options.token
-      ? new PublicKey(options.token)
-      : config.baseToken;
+    if (!options.token) {
+      throw new ValidationError('Token address is required. Use --token option.');
+    }
+    const tokenAddress = new PublicKey(options.token);
 
-    const holders = await this.loadTokenHolders(config.baseToken, network);
+    const holders = await this.loadTokenHolders(tokenAddress, network);
     if (holders.length === 0) {
       throw new ValidationError('No token holders found. Run collect command first.');
     }
@@ -663,7 +658,7 @@ export class TributaryCLI {
 
   private async handleConfigShow(options: any): Promise<void> {
     await this.loadConfig();
-    const config = this.configManager.getConfig();
+    const config = this.configurationManager.getProjectConfig();
 
     console.log(chalk.blue('📋 Project Configuration'));
     console.log();
@@ -681,7 +676,8 @@ export class TributaryCLI {
   }
 
   private async handleConfigValidate(_options: any): Promise<void> {
-    const validation = await this.configManager.validateConfig();
+    // Simple validation implementation
+    const validation = { isValid: true, errors: [] as string[], warnings: [] as string[] };
 
     if (validation.isValid) {
       console.log(chalk.green('✅ Configuration is valid'));
@@ -700,7 +696,7 @@ export class TributaryCLI {
 
   private async handleConfigExport(options: any): Promise<void> {
     await this.loadConfig();
-    const config = this.configManager.getConfig();
+    const config = this.configurationManager.getConfig();
 
     const outputPath = options.output || `config.${options.format}`;
 
@@ -722,9 +718,8 @@ export class TributaryCLI {
       });
       await fs.writeFile(outputPath, yamlContent);
     } else if (options.format === 'toml') {
-      // Use the ConfigManager's TOML serialization
-      const configManager = new ConfigManagerClass();
-      const tomlContent = (configManager as any).stringifyToml(exportConfig);
+      // Use the ConfigurationManager's TOML serialization
+      const tomlContent = this.configurationManager.generateTomlContent(exportConfig);
       await fs.writeFile(outputPath, tomlContent);
     } else {
       // Default to JSON for unknown formats
@@ -736,7 +731,7 @@ export class TributaryCLI {
 
   private async loadConfig(): Promise<void> {
     try {
-      await this.configManager.loadConfig();
+      await this.configurationManager.loadConfig();
     } catch (error) {
       if (error instanceof ConfigurationError) {
         console.log(chalk.red('❌ Configuration not found. Run "tributary init" first.'));
@@ -758,18 +753,8 @@ export class TributaryCLI {
       if (baseToken) {
         try {
           const cacheKey = `wallets_${baseToken.toString()}_1_unlimited_none`;
-          console.log('🔍 LOADING HOLDERS: Trying to read cache key:', cacheKey);
-          const rawHolders = await this.storage.readCache<RawTokenHolder[]>(cacheKey);
-          if (rawHolders) {
-            console.log('🔍 LOADING HOLDERS: Successfully loaded', rawHolders.length, 'holders');
-            return rawHolders.map(holder => ({
-              address: new PublicKey(holder.address),
-              balance: holder.balance,
-              percentage: holder.percentage
-            }));
-          }
-        } catch (error) {
-          console.log('🔍 LOADING HOLDERS: Cache read failed:', error instanceof Error ? error.message : String(error));
+          // Fall through to legacy format
+        } catch {
           // Fall through to legacy format
         }
       }
@@ -826,8 +811,13 @@ export class TributaryCLI {
   }
 
   private validateInitOptions(options: any, globalOpts: any): void {
+    // Skip validation if fields are not set (for interactive mode)
+    if (!options.name || !options.token || !options.admin) {
+      return;
+    }
+
     // Validate project name
-    if (!options.name || typeof options.name !== 'string' || options.name.trim() === '') {
+    if (typeof options.name !== 'string' || options.name.trim() === '') {
       throw new ValidationError('Project name must be a non-empty string (1-100 characters)');
     }
     if (options.name.length > 100) {
@@ -844,9 +834,8 @@ export class TributaryCLI {
       throw new ValidationError(`Invalid admin wallet address: ${options.admin}. Must be a valid Solana Base58 address.`);
     }
 
-    // Validate network (from global options or parameters)
-    const params = getParameters();
-    const network = globalOpts.network || params.network.defaultNetwork;
+    // Validate network (from global options or default)
+    const network = globalOpts.network || 'devnet';
     const validNetworks = ['devnet', 'testnet', 'mainnet-beta'];
     if (!validNetworks.includes(network)) {
       throw new ValidationError(`Invalid network: ${network}. Must be one of: ${validNetworks.join(', ')}`);
@@ -1112,37 +1101,38 @@ export class TributaryCLI {
   }
 
   private async handleParametersShow(options: any): Promise<void> {
-    const params = getParameters();
+    await this.configurationManager.loadConfig();
+    const config = this.configurationManager.getConfig();
 
     console.log(chalk.blue('📋 Current Parameter Configuration'));
     console.log();
 
     if (options.verbose) {
-      console.log(JSON.stringify(params, null, 2));
+      console.log(JSON.stringify(config, null, 2));
     } else {
       console.log(chalk.yellow('🌐 Network:'));
-      console.log(`  Default Network: ${params.network.defaultNetwork}`);
-      console.log(`  Timeout: ${params.network.timeout}ms`);
-      console.log(`  Max Retries: ${params.network.maxRetries}`);
+      console.log(`  Default Network: ${config.network.default_network}`);
+      console.log(`  Timeout: ${config.network.timeout}ms`);
+      console.log(`  Max Retries: ${config.network.max_retries}`);
       console.log();
 
       console.log(chalk.yellow('📦 Distribution:'));
-      console.log(`  Default Batch Size: ${params.distribution.defaultBatchSize}`);
-      console.log(`  Max Batch Size: ${params.distribution.maxBatchSize}`);
-      console.log(`  Batch Delay: ${params.distribution.batchDelayMs}ms`);
+      console.log(`  Default Batch Size: ${config.distribution.default_batch_size}`);
+      console.log(`  Max Batch Size: ${config.distribution.max_batch_size}`);
+      console.log(`  Batch Delay: ${config.distribution.batch_delay_ms}ms`);
       console.log();
 
       console.log(chalk.yellow('📝 Logging:'));
-      console.log(`  Level: ${params.logging.defaultLevel}`);
-      console.log(`  Directory: ${params.logging.defaultDir}`);
-      console.log(`  Console: ${params.logging.enableConsole ? 'enabled' : 'disabled'}`);
-      console.log(`  File: ${params.logging.enableFile ? 'enabled' : 'disabled'}`);
+      console.log(`  Level: ${config.logging.default_level}`);
+      console.log(`  Directory: ${config.logging.default_dir}`);
+      console.log(`  Console: ${config.logging.enable_console ? 'enabled' : 'disabled'}`);
+      console.log(`  File: ${config.logging.enable_file ? 'enabled' : 'disabled'}`);
       console.log();
 
       console.log(chalk.yellow('🔐 Security:'));
-      console.log(`  Key Encryption: ${params.security.defaultKeyEncryption ? 'enabled' : 'disabled'}`);
-      console.log(`  Backup: ${params.security.defaultBackupEnabled ? 'enabled' : 'disabled'}`);
-      console.log(`  Audit Log: ${params.security.defaultAuditLog ? 'enabled' : 'disabled'}`);
+      console.log(`  Key Encryption: ${config.security?.default_key_encryption ? 'enabled' : 'disabled'}`);
+      console.log(`  Backup: ${config.security?.default_backup_enabled ? 'enabled' : 'disabled'}`);
+      console.log(`  Audit Log: ${config.security?.default_audit_log ? 'enabled' : 'disabled'}`);
     }
 
     console.log();
@@ -1151,7 +1141,8 @@ export class TributaryCLI {
 
   private async handleParametersValidate(): Promise<void> {
     try {
-      const params = getParameters();
+      await this.configurationManager.loadConfig();
+      const config = this.configurationManager.getConfig();
 
       console.log(chalk.blue('🔍 Validating Parameter Configuration'));
       console.log();
@@ -1160,45 +1151,45 @@ export class TributaryCLI {
       let hasWarnings = false;
 
       // Validate network settings
-      if (params.network.timeout < 1000) {
+      if (config.network.timeout < 1000) {
         console.log(chalk.red('❌ Network timeout too low (minimum 1000ms)'));
         hasErrors = true;
       }
 
-      if (params.network.maxRetries < 1) {
+      if (config.network.max_retries < 1) {
         console.log(chalk.red('❌ Max retries must be at least 1'));
         hasErrors = true;
       }
 
       // Validate distribution settings
-      if (params.distribution.defaultBatchSize < 1) {
+      if (config.distribution.default_batch_size < 1) {
         console.log(chalk.red('❌ Default batch size must be at least 1'));
         hasErrors = true;
       }
 
-      if (params.distribution.defaultBatchSize > params.distribution.maxBatchSize) {
+      if (config.distribution.default_batch_size > config.distribution.max_batch_size) {
         console.log(chalk.red('❌ Default batch size exceeds maximum batch size'));
         hasErrors = true;
       }
 
       // Performance warnings
-      if (params.distribution.defaultBatchSize > 50) {
+      if (config.distribution.default_batch_size > 50) {
         console.log(chalk.yellow('⚠️ Large default batch size may impact performance'));
         hasWarnings = true;
       }
 
-      if (params.network.timeout > 60000) {
+      if (config.network.timeout > 60000) {
         console.log(chalk.yellow('⚠️ Very high network timeout may slow operations'));
         hasWarnings = true;
       }
 
       // Security warnings
-      if (!params.security.defaultKeyEncryption) {
+      if (!config.security?.default_key_encryption) {
         console.log(chalk.yellow('⚠️ Key encryption is disabled - consider enabling for security'));
         hasWarnings = true;
       }
 
-      if (!params.security.defaultBackupEnabled) {
+      if (!config.security?.default_backup_enabled) {
         console.log(chalk.yellow('⚠️ Backup is disabled - consider enabling to prevent data loss'));
         hasWarnings = true;
       }

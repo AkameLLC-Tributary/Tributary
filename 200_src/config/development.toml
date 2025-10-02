@@ -1,0 +1,32 @@
+# Tributary CLI Development Configuration
+# 開発環境特有の設定
+
+[network]
+# 開発環境では短いタイムアウト
+timeout = 15000
+max_retries = 5
+
+[logging]
+# 開発時は詳細ログ
+default_level = "debug"
+enable_console = true
+
+[security]
+# 開発時はセキュリティを緩和
+default_key_encryption = false
+default_backup_enabled = false
+
+[distribution]
+# 開発時は小さなバッチサイズでテスト
+default_batch_size = 5
+max_batch_size = 20
+
+[cache]
+# 開発時は短いキャッシュ
+default_ttl_seconds = 300
+wallet_cache_ttl_seconds = 300
+
+[validation]
+# 開発時は緩い制限
+max_recipients_per_distribution = 100
+min_balance_for_distribution = 0

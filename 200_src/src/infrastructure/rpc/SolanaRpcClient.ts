@@ -6,7 +6,7 @@ import {
 import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, AccountLayout } from '@solana/spl-token';
 import { NetworkError, TimeoutError } from '../../domain/errors';
 import { TokenHolder, NetworkType } from '../../domain/models';
-import { getParameters } from '../../config/parameters';
+import { ConfigurationManager } from '../../config/ConfigurationManager';
 
 export interface SolanaRpcClientOptions {
   network: NetworkType;
@@ -21,30 +21,32 @@ export class SolanaRpcClient {
   private readonly timeout: number;
   private readonly maxRetries: number;
   private readonly retryDelay: number;
+  private readonly configManager: ConfigurationManager;
 
   constructor(options: SolanaRpcClientOptions) {
-    const params = getParameters();
+    this.configManager = new ConfigurationManager();
+    const config = this.configManager.getConfig();
     const rpcUrl = options.rpcUrl || this.getDefaultRpcUrl(options.network);
 
     this.connection = new Connection(rpcUrl, {
-      commitment: params.network.commitment,
-      confirmTransactionInitialTimeout: options.timeout || params.network.confirmationTimeout
+      commitment: config.network.commitment as any,
+      confirmTransactionInitialTimeout: options.timeout || config.network.confirmation_timeout
     });
-    this.timeout = options.timeout || params.network.timeout;
-    this.maxRetries = options.maxRetries || params.network.maxRetries;
-    this.retryDelay = options.retryDelay || params.network.retryDelay;
+    this.timeout = options.timeout || config.network.timeout;
+    this.maxRetries = options.maxRetries || config.network.max_retries;
+    this.retryDelay = options.retryDelay || config.network.retry_delay;
   }
 
   private getDefaultRpcUrl(network: NetworkType): string {
-    const params = getParameters();
+    const config = this.configManager.getConfig();
 
     switch (network) {
       case 'devnet':
-        return params.rpc.endpoints.devnet;
+        return config.rpc.endpoints.devnet;
       case 'testnet':
-        return params.rpc.endpoints.testnet;
+        return config.rpc.endpoints.testnet;
       case 'mainnet-beta':
-        return params.rpc.endpoints['mainnet-beta'];
+        return config.rpc.endpoints['mainnet-beta'];
       default:
         throw new NetworkError(`Unknown network: ${network}`);
     }

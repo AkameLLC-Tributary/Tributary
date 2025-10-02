@@ -1,4 +1,5 @@
 import { PublicKey } from '@solana/web3.js';
+import { createLogger } from '../../infrastructure/logging/Logger';
 
 /**
  * 完全に堅牢なPublicKey処理ユーティリティ
@@ -11,6 +12,8 @@ export class RobustPublicKeyHandler {
    * プロトタイプ問題、メモリ破損、CLI環境問題すべてに対応
    */
   static createSafePublicKey(input: PublicKey | string): PublicKey {
+    const logger = createLogger('RobustPublicKeyHandler');
+
     try {
       // 入力の正規化
       let keyString: string;
@@ -35,12 +38,12 @@ export class RobustPublicKeyHandler {
       try {
         publicKey = new PublicKey(keyString);
       } catch (error) {
-        console.warn('Standard PublicKey creation failed, trying alternative method');
+        logger.warn('Standard PublicKey creation failed, trying alternative method');
 
         // 方法2: 再試行
         try {
           publicKey = new PublicKey(keyString);
-        } catch (bufferError) {
+        } catch {
           throw new Error(`All PublicKey creation methods failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
       }
@@ -49,7 +52,7 @@ export class RobustPublicKeyHandler {
       const issues = RobustPublicKeyHandler.validatePublicKeyIntegrity(publicKey);
 
       if (issues.length > 0) {
-        console.warn('PublicKey integrity issues detected:', issues);
+        logger.warn('PublicKey integrity issues detected', { issues });
         publicKey = RobustPublicKeyHandler.repairPublicKey(publicKey, keyString);
       }
 
@@ -62,7 +65,7 @@ export class RobustPublicKeyHandler {
       return publicKey;
 
     } catch (error) {
-      console.error('RobustPublicKeyHandler.createSafePublicKey failed:', {
+      logger.error('RobustPublicKeyHandler.createSafePublicKey failed', {
         input: typeof input === 'string' ? input : 'non-string',
         error: error instanceof Error ? error.message : 'Unknown error'
       });
@@ -137,7 +140,8 @@ export class RobustPublicKeyHandler {
    * 破損したPublicKeyオブジェクトを修復
    */
   static repairPublicKey(brokenKey: any, originalString: string): PublicKey {
-    console.log('Attempting to repair broken PublicKey...');
+    const logger = createLogger('RobustPublicKeyHandler');
+    logger.debug('Attempting to repair broken PublicKey');
 
     // 完全に新しいPublicKeyオブジェクトを作成
     const newKey = new PublicKey(originalString);
@@ -147,26 +151,26 @@ export class RobustPublicKeyHandler {
 
     // 必要に応じて個別メソッドを復元
     if (typeof newKey.toBuffer !== 'function') {
-      console.log('Manually restoring toBuffer method...');
+      logger.debug('Manually restoring toBuffer method');
       newKey.toBuffer = PublicKey.prototype.toBuffer.bind(newKey);
     }
 
     if (typeof newKey.toString !== 'function') {
-      console.log('Manually restoring toString method...');
+      logger.debug('Manually restoring toString method');
       newKey.toString = PublicKey.prototype.toString.bind(newKey);
     }
 
     if (typeof newKey.toBase58 !== 'function') {
-      console.log('Manually restoring toBase58 method...');
+      logger.debug('Manually restoring toBase58 method');
       newKey.toBase58 = PublicKey.prototype.toBase58.bind(newKey);
     }
 
     if (typeof newKey.equals !== 'function') {
-      console.log('Manually restoring equals method...');
+      logger.debug('Manually restoring equals method');
       newKey.equals = PublicKey.prototype.equals.bind(newKey);
     }
 
-    console.log('PublicKey repair completed');
+    logger.debug('PublicKey repair completed');
     return newKey;
   }
 
@@ -174,11 +178,13 @@ export class RobustPublicKeyHandler {
    * PublicKey配列の一括処理
    */
   static processPublicKeyArray(keys: (PublicKey | string)[]): PublicKey[] {
+    const logger = createLogger('RobustPublicKeyHandler');
+
     return keys.map((key, index) => {
       try {
         return RobustPublicKeyHandler.createSafePublicKey(key);
       } catch (error) {
-        console.error(`Failed to process PublicKey at index ${index}:`, error);
+        logger.error('Failed to process PublicKey at index', { index, error: error instanceof Error ? error.message : 'Unknown error' });
         throw error;
       }
     });
@@ -188,6 +194,8 @@ export class RobustPublicKeyHandler {
    * CLI環境特有の問題に対する追加の安全措置
    */
   static ensureCLISafety(publicKey: PublicKey): PublicKey {
+    const logger = createLogger('RobustPublicKeyHandler');
+
     // CLI環境でのガベージコレクション対策
     if (global.gc) {
       global.gc();
@@ -196,7 +204,7 @@ export class RobustPublicKeyHandler {
     // プロトタイプチェーンの再検証と修復
     const issues = RobustPublicKeyHandler.validatePublicKeyIntegrity(publicKey);
     if (issues.length > 0) {
-      console.warn('CLI environment PublicKey issues detected, repairing...', issues);
+      logger.warn('CLI environment PublicKey issues detected, repairing', { issues });
       return RobustPublicKeyHandler.repairPublicKey(publicKey, publicKey.toString());
     }
 
@@ -206,33 +214,34 @@ export class RobustPublicKeyHandler {
 
 // モジュールのテスト
 export function testRobustPublicKeyHandler() {
-  console.log('🧪 Testing RobustPublicKeyHandler...');
+  const logger = createLogger('RobustPublicKeyHandler.Test');
+  logger.info('Testing RobustPublicKeyHandler');
 
   const testAddress = '22XkWSj5b7MT47ubmmFWjWr8jMDCgE5szc8wiVL79xv1';
 
   try {
     // 基本的な作成テスト
     const pk1 = RobustPublicKeyHandler.createSafePublicKey(testAddress);
-    console.log('✅ String input test passed');
+    logger.info('String input test passed');
 
     // PublicKey入力テスト
-    const pk2 = RobustPublicKeyHandler.createSafePublicKey(pk1);
-    console.log('✅ PublicKey input test passed');
+    RobustPublicKeyHandler.createSafePublicKey(pk1);
+    logger.info('PublicKey input test passed');
 
     // 配列処理テスト
     const addresses = [testAddress, pk1, 'D8zGvbM3w6bcAsnfWcZnWEz2GLeK7LPVftqwsMDCkcHk'];
-    const processed = RobustPublicKeyHandler.processPublicKeyArray(addresses);
-    console.log('✅ Array processing test passed');
+    RobustPublicKeyHandler.processPublicKeyArray(addresses);
+    logger.info('Array processing test passed');
 
     // CLI安全性テスト
-    const safePk = RobustPublicKeyHandler.ensureCLISafety(pk1);
-    console.log('✅ CLI safety test passed');
+    RobustPublicKeyHandler.ensureCLISafety(pk1);
+    logger.info('CLI safety test passed');
 
-    console.log('🎉 All RobustPublicKeyHandler tests passed!');
+    logger.info('All RobustPublicKeyHandler tests passed');
     return true;
 
   } catch (error) {
-    console.error('❌ RobustPublicKeyHandler test failed:', error);
+    logger.error('RobustPublicKeyHandler test failed', { error: error instanceof Error ? error.message : 'Unknown error' });
     return false;
   }
 }

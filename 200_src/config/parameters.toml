@@ -1,0 +1,13 @@
+[project]
+name = "NewTestProject"
+network = "devnet"
+
+[token]
+base_token = "11111111111111111111111111111112"
+admin_wallet = "11111111111111111111111111111113"
+
+[network]
+
+[logging]
+level = "info"
+

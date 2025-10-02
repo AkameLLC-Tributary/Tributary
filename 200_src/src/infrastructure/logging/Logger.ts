@@ -1,6 +1,7 @@
-import winston from 'winston';
-import path from 'path';
+import * as winston from 'winston';
+import * as path from 'path';
 import { LogEntry, LogLevel } from '../../domain/models';
+import { ConfigurationManager } from '../../config/ConfigurationManager';
 
 export interface LoggerOptions {
   level?: LogLevel;
@@ -9,6 +10,7 @@ export interface LoggerOptions {
   enableFile?: boolean;
   maxFiles?: number;
   maxSize?: string;
+  configManager?: ConfigurationManager;
 }
 
 export class Logger {
@@ -21,13 +23,15 @@ export class Logger {
   }
 
   private createLogger(options: LoggerOptions): winston.Logger {
+    const defaults = this.getDefaultsFromConfig(options.configManager);
+
     const {
-      level = 'info',
-      logDir = './logs',
-      enableConsole = true,
-      enableFile = true,
-      maxFiles = 14,
-      maxSize = '20m'
+      level = defaults.level,
+      logDir = defaults.logDir,
+      enableConsole = defaults.enableConsole,
+      enableFile = defaults.enableFile,
+      maxFiles = defaults.maxFiles,
+      maxSize = defaults.maxSize
     } = options;
 
     const formats = [
@@ -57,17 +61,17 @@ export class Logger {
     if (enableFile) {
       transports.push(
         new winston.transports.File({
-          filename: path.join(logDir, 'error.log'),
+          filename: path.join(logDir!, 'error.log'),
           level: 'error',
           format: winston.format.combine(...formats),
           maxFiles,
-          maxsize: this.parseSize(maxSize)
+          maxsize: this.parseSize(maxSize!)
         }),
         new winston.transports.File({
-          filename: path.join(logDir, 'combined.log'),
+          filename: path.join(logDir!, 'combined.log'),
           format: winston.format.combine(...formats),
           maxFiles,
-          maxsize: this.parseSize(maxSize)
+          maxsize: this.parseSize(maxSize!)
         })
       );
     }
@@ -79,6 +83,45 @@ export class Logger {
       transports,
       exitOnError: false
     });
+  }
+
+  private getDefaultsFromConfig(configManager?: ConfigurationManager): LoggerOptions {
+    if (!configManager) {
+      // ConfigurationManagerがない場合のフォールバック
+      return {
+        level: 'info',
+        logDir: './logs',
+        enableConsole: true,
+        enableFile: true,
+        maxFiles: 14,
+        maxSize: '20m'
+      };
+    }
+
+    try {
+      const config = configManager.getConfig();
+      const loggingConfig = config.logging;
+
+      return {
+        level: loggingConfig.default_level as LogLevel,
+        logDir: loggingConfig.default_dir,
+        enableConsole: loggingConfig.enable_console,
+        enableFile: loggingConfig.enable_file,
+        maxFiles: loggingConfig.max_files,
+        maxSize: loggingConfig.max_file_size
+      };
+    } catch (error) {
+      // 設定読み込み失敗時のフォールバック
+      console.warn('Failed to load logging configuration, using defaults', error);
+      return {
+        level: 'info',
+        logDir: './logs',
+        enableConsole: true,
+        enableFile: true,
+        maxFiles: 14,
+        maxSize: '20m'
+      };
+    }
   }
 
   private parseSize(size: string): number {
@@ -202,5 +245,6 @@ export class Logger {
 }
 
 export const createLogger = (component: string, options?: LoggerOptions): Logger => {
+  // ConfigurationManagerの循環依存を避けるため、シンプルなLoggerインスタンスを作成
   return new Logger(component, options);
 };

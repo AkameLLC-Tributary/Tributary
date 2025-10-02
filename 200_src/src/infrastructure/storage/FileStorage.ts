@@ -2,19 +2,39 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { CacheData } from '../../domain/models';
 import { ResourceError, DataIntegrityError } from '../../domain/errors';
+import { ConfigurationManager } from '../../config/ConfigurationManager';
 
 export interface FileStorageOptions {
   baseDir?: string;
   createDirs?: boolean;
+  cacheDir?: string;
+  configManager?: ConfigurationManager;
 }
 
 export class FileStorage {
   private readonly baseDir: string;
   private readonly createDirs: boolean;
+  private readonly cacheDir: string;
+  private readonly configManager?: ConfigurationManager;
 
   constructor(options: FileStorageOptions = {}) {
     this.baseDir = options.baseDir || './data';
     this.createDirs = options.createDirs ?? true;
+    this.configManager = options.configManager;
+
+    // キャッシュディレクトリを設定から取得
+    if (options.cacheDir) {
+      this.cacheDir = options.cacheDir;
+    } else if (this.configManager) {
+      try {
+        const config = this.configManager.getConfig();
+        this.cacheDir = path.join(config.logging.default_dir, '../cache');
+      } catch {
+        this.cacheDir = './cache';
+      }
+    } else {
+      this.cacheDir = './cache';
+    }
   }
 
   public async writeJson<T>(filePath: string, data: T): Promise<void> {
@@ -119,13 +139,13 @@ export class FileStorage {
       createdAt: new Date()
     };
 
-    const cacheFile = `cache/${this.sanitizeKey(key)}.json`;
+    const cacheFile = path.join(this.cacheDir, `${this.sanitizeKey(key)}.json`);
     await this.writeJson(cacheFile, cacheData);
   }
 
   public async readCache<T>(key: string): Promise<T | null> {
     try {
-      const cacheFile = `cache/${this.sanitizeKey(key)}.json`;
+      const cacheFile = path.join(this.cacheDir, `${this.sanitizeKey(key)}.json`);
       const cacheData = await this.readJson<CacheData<T>>(cacheFile);
 
       if (new Date() > new Date(cacheData.expiresAt)) {
@@ -187,7 +207,11 @@ export class FileStorage {
   }
 
   private sanitizeKey(key: string): string {
-    return key.replace(/[^a-zA-Z0-9-_]/g, '_');
+    // ファイル名に使用できない文字をアンダースコアに置換
+    const pattern = this.configManager
+      ? /[^a-zA-Z0-9\-_.]/g  // より寛容なパターン
+      : /[^a-zA-Z0-9-_]/g;    // デフォルトパターン
+    return key.replace(pattern, '_');
   }
 
   public getFullPath(filePath: string): string {

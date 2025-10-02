@@ -1,0 +1,45 @@
+# Tributary CLI User Parameters Configuration
+# ユーザーカスタマイズ用設定ファイル
+#
+# このファイルをコピーして parameters.toml として保存し、
+# 必要な設定をカスタマイズしてください。
+
+[project]
+# プロジェクト名（必須）
+# name = "Your Project Name"
+
+[token]
+# ベーストークンアドレス（必須）
+# base_token = "So11111111111111111111111111111111111111112"
+# 管理者ウォレットアドレス（必須）
+# admin_wallet = "YourAdminWalletAddressHere"
+
+[network]
+# カスタムRPCエンドポイント（必要に応じて設定）
+# custom_rpc_url = "https://your-custom-rpc-endpoint.com"
+
+[distribution]
+# プロジェクト固有の配布設定
+# default_batch_size = 15
+# max_batch_size = 30
+
+[logging]
+# ログ設定のカスタマイズ
+# default_level = "debug"
+# default_dir = "/custom/log/path"
+
+[security]
+# セキュリティ設定のカスタマイズ
+# default_key_encryption = false  # 開発時のみ
+# default_backup_enabled = false  # 開発時のみ
+
+# プロジェクト固有設定
+[project_specific]
+# organization = "your-organization"
+# contact_email = "admin@your-domain.com"
+# slack_webhook = "https://hooks.slack.com/..."
+
+# カスタム閾値
+[custom_thresholds]
+# large_amount_warning = 50000
+# max_daily_distributions = 10

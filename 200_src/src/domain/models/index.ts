@@ -63,16 +63,35 @@ export class Distribution {
 }
 
 export class Project {
+  private configManager?: any; // ConfigurationManagerの参照
+
   constructor(
     public readonly config: ProjectConfig,
-    public readonly createdAt: Date = new Date()
-  ) {}
+    public readonly createdAt: Date = new Date(),
+    configManager?: any
+  ) {
+    this.configManager = configManager;
+  }
 
   public isMainnet(): boolean {
     return this.config.network === 'mainnet-beta';
   }
 
   public getNetworkUrl(): string {
+    // ConfigurationManagerが利用可能な場合は設定から取得
+    if (this.configManager) {
+      try {
+        const configData = this.configManager.getConfig();
+        const networkUrl = configData.rpc.endpoints[this.config.network];
+        if (networkUrl) {
+          return networkUrl;
+        }
+      } catch {
+        // 設定取得に失敗した場合はフォールバックを使用
+      }
+    }
+
+    // フォールバック: デフォルトURL
     switch (this.config.network) {
       case 'devnet':
         return 'https://api.devnet.solana.com';

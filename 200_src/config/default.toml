@@ -1,0 +1,96 @@
+# Tributary CLI Default Configuration
+# ベース設定：全環境共通のデフォルト値
+
+[project]
+version = "1.0.0"
+description = "Solana token distribution system"
+
+[network]
+# ネットワーク設定
+default_network = "devnet"
+timeout = 30000                    # ネットワークタイムアウト（ミリ秒）
+max_retries = 3                    # 最大リトライ回数
+retry_delay = 1000                 # リトライ間隔（ミリ秒）
+confirmation_timeout = 60000       # トランザクション確認タイムアウト
+commitment = "confirmed"           # コミットメントレベル
+
+[rpc]
+# RPC エンドポイント
+[rpc.endpoints]
+devnet = "https://api.devnet.solana.com"
+testnet = "https://api.testnet.solana.com"
+mainnet-beta = "https://api.mainnet-beta.solana.com"
+
+# フォールバック RPC エンドポイント
+[rpc.fallback_endpoints]
+devnet = [
+  "https://rpc.ankr.com/solana_devnet",
+  "https://devnet.helius-rpc.com"
+]
+testnet = [
+  "https://rpc.ankr.com/solana_testnet"
+]
+mainnet-beta = [
+  "https://rpc.ankr.com/solana",
+  "https://mainnet.helius-rpc.com"
+]
+
+[distribution]
+# 配布設定
+default_batch_size = 10            # デフォルトバッチサイズ
+max_batch_size = 50               # 最大バッチサイズ
+batch_delay_ms = 100              # バッチ間隔（ミリ秒）
+estimated_gas_per_tx = 0.000005   # トランザクション当たり推定ガス費
+estimated_time_per_batch = 2      # バッチ当たり推定処理時間（秒）
+
+# リスク閾値
+[distribution.risk_thresholds]
+large_amount_threshold = 100000        # 大量配布警告閾値
+large_recipient_count_threshold = 1000 # 大量受信者警告閾値
+small_amount_threshold = 0.001         # 少額配布警告閾値
+
+[token]
+# トークン設定
+default_decimals = 9              # デフォルト小数点桁数
+fallback_decimals = 6             # フォールバック小数点桁数
+minimum_balance = 0               # 最小残高要件
+
+[cache]
+# キャッシュ設定
+default_ttl_seconds = 3600        # デフォルトTTL（秒）
+wallet_cache_ttl_seconds = 1800   # ウォレットキャッシュTTL
+config_cache_ttl_seconds = 300    # 設定キャッシュTTL
+
+[logging]
+# ログ設定
+default_level = "info"            # デフォルトログレベル
+default_dir = "./logs"            # ログディレクトリ
+enable_console = true             # コンソールログ有効
+enable_file = true                # ファイルログ有効
+max_files = 14                    # 最大ファイル数
+max_file_size = "20m"             # 最大ファイルサイズ
+
+[security]
+# セキュリティ設定
+default_key_encryption = true     # キー暗号化デフォルト
+default_backup_enabled = true     # バックアップデフォルト
+default_audit_log = true          # 監査ログデフォルト
+
+[validation]
+# バリデーション設定
+max_recipients_per_distribution = 10000  # 配布当たり最大受信者数
+min_balance_for_distribution = 0.001     # 配布参加最小残高
+wallet_validation_timeout = 5000         # ウォレット検証タイムアウト
+
+[export]
+# エクスポート設定
+default_format = "json"                                    # デフォルトエクスポート形式
+file_name_pattern = "{type}_{timestamp}.{format}"         # ファイル名パターン
+
+# PDA容量管理設定（v1.0.0新機能）
+[pda_capacity]
+max_wallet_groups_unified = 30     # 統合PDA最大グループ数
+auto_migrate_on_capacity = false   # 容量超過時自動移行
+require_user_confirmation = true   # 移行時ユーザ確認要求
+capacity_warning_threshold = 80    # 容量警告閾値（%）
+capacity_monitoring = true         # 容量監視有効
